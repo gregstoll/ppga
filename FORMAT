@@ -1,2 +1,24 @@
+TODO - mapping?
 0 arg functions:
-(number) - "{type:number, value:.3}
+(number) - "{t:num, val:.3}
+x - "{t:x}"
+y - "{t:y}"
+1 arg:
+atan - "{t:atan, ch:[<child>]}"
+abs - "{t:abs, ch:[<child>]}"
+cos - "{t:cos, ch:[<child>]}"
+exp - def 
+log - def
+negate - neg
+rounddown - rd
+roundup - ru
+sin - def
+2 arg:
+add - def
+bwperlin - ??
+colorperlin - ??
+divide - div
+loadimage - ??
+multiply - mul 
+subtract - sub
+colorconditional - cc

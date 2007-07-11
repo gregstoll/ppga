@@ -256,9 +256,12 @@ class PNGCanvas:
 
   def apply(self, f):
     for y in range(0, self.height):
-      # TODO - optimize with a row at a time
+      # TODO - optimize with a row at a time?
+      # y = -1 is at the bottom, not the top.
+      yScaled = (1.0 - (y+0.0)/(self.height/2.0))
       for x in range(0, self.width):
-        self.canvas[y][x] = [int(val*255.0) for val in f(x,y, self.width, self.height)]# + [0xff]
+        xScaled = ((x+0.0)/(self.width/2.0))-1.0
+        self.canvas[y][x] = [int((val+1.0)*(255.0/2.0)) for val in f(xScaled,yScaled)]# + [0xff]
 #if __name__ == '__main__':
 #  width = 128
 #  height = 64
