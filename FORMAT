@@ -1,24 +1,26 @@
 TODO - mapping?
+* on functions that need mapping - m:c = clip, m:w = wrap
 0 arg functions:
 (number) - "{t:num, val:.3}
 x - "{t:x}"
 y - "{t:y}"
 1 arg:
-atan - "{t:atan, ch:[<child>]}"
+atan - "{t:atan, ch:[<child>]}" *
 abs - "{t:abs, ch:[<child>]}"
 cos - "{t:cos, ch:[<child>]}"
-exp - def 
-log - def
+exp - def  *
+log - def  *
 negate - neg
 rounddown - rd
 roundup - ru
 sin - def
 2 arg:
-add - def
+add - def  *
 bwperlin - ??
 colorperlin - ??
-divide - div
+divide - div  *
 loadimage - ??
-multiply - mul 
-subtract - sub
+multiply - mul  *
+subtract - sub  *
+3 arg:
 colorconditional - cc
