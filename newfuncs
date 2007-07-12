@@ -1,0 +1,19 @@
+1 arg:
+abs - def
+cos - def
+exp - def  *
+log - def  *
+negate - neg
+rounddown - rd
+roundup - ru
+sin - def
+2 arg:
+add - def  *
+bwperlin - ??
+colorperlin - ??
+divide - div  *
+loadimage - ??
+multiply - mul  *
+subtract - sub  *
+3 arg:
+colorconditional - cc

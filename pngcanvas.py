@@ -255,14 +255,14 @@ class PNGCanvas:
       yield [tag,data]
 
   def apply(self, d):
+    evaluator = d['eval']
     for y in range(0, self.height):
       # TODO - optimize with a row at a time?
       # y = -1 is at the bottom, not the top.
       yScaled = (1.0 - (y+0.0)/(self.height/2.0))
       for x in range(0, self.width):
         xScaled = ((x+0.0)/(self.width/2.0))-1.0
-        evaluator = d['eval']
-        self.canvas[y][x] = [int((val+1.0)*(255.0/2.0)) for val in evaluator(d, xScaled,yScaled)]# + [0xff]
+        self.canvas[y][x] = [int((val+1.0)*(255.0/2.0)) for val in evaluator(xScaled,yScaled)]# + [0xff]
 #if __name__ == '__main__':
 #  width = 128
 #  height = 64
