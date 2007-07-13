@@ -110,11 +110,14 @@ func = jsonsinglequote.read(form.getfirst('f'))
 #print func
 width = int(form.getfirst('w'))
 height = int(form.getfirst('h'))
-c = pngcanvas.PNGCanvas(width, height)
-#print makeEvaluator(testJson)
-#print (makeEvaluator(testJson))(0,0)
-c.apply(makeEvaluator(func))
+# Don't do anything unreasonably large
+if (width <= 0 or height <= 0 or width > 10000 or height > 10000):
+    pass
+else:
+    c = pngcanvas.PNGCanvas(width, height)
+    #print makeEvaluator(testJson)
+    #print (makeEvaluator(testJson))(0,0)
+    c.apply(makeEvaluator(func))
 
-print "Content-type: image/png\n"
-print c.dump()
-#
+    print "Content-type: image/png\n"
+    print c.dump()

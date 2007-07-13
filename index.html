@@ -16,20 +16,28 @@
 </head>
 <body>
     <H1>PPGA</H1>
-    <form>
-        <p><input type="button" value="New generation" onclick="ppga.Class.makeRandomImages();"><input type="button" id="nextGenButton" value="Next generation" onclick="ppga.Class.nextGeneration();" disabled></p>
+    <form action="javascript:void(0);">
+        <p><input type="button" value="New generation" onclick="ppga.Class.makeRandomImages();"><input type="button" id="nextGenButton" value="Next generation" onclick="ppga.Class.nextGeneration();" disabled><img id="status" style="top: 250px; left: 250px; width: 100px; height: 100px; position: fixed; display: none; z-index: 10;" src="loading.gif"></p>
+        <p>Select the pictures to breed together and click "Next generation".  Double-click on a picture to see a larger version.  You can load the function of an existing picture in the <a href="#details">"Details" section below</a>.</p>
     </form>
-    <!-- <p><a href="javascript:void(0)" onclick="ppga.Class.makeRandomImages();">New generation</a></p> -->
-    <!-- <p><a href="javascript:void(0)" onclick="document.getElementById('testImg').src='http://gregstoll.dyndns.org/~gregstoll/ppga/makepng.cgi?width=160&amp;height=120&amp;func={}'">click here</a></p> -->
-    <!-- <p><a href="javascript:void(0)" onclick="ppga.Class.randomFnTest();">click here</a></p>-->
-    <!-- <p id="fnDesc"></p> -->
     <table>
         <tr><td><img id="img1"></td><td><img id="img2"></td><td><img id="img3"></td><td><img id="img4"></td><td><img id="img5"></td></tr>
         <tr><td><img id="img6"></td><td><img id="img7"></td><td><img id="img8"></td><td><img id="img9"></td><td><img id="img10"></td></tr>
         <tr><td><img id="img11"></td><td><img id="img12"></td><td><img id="img13"></td><td><img id="img14"></td><td><img id="img15"></td></tr>
         <tr><td><img id="img16"></td><td><img id="img17"></td><td><img id="img18"></td><td><img id="img19"></td><td><img id="img20"></td></tr>
     </table>
-<p><img id="testImg" src=""></p>
+    <p>Details:</p>
+    <div id="details">
+        <form action="javascript:void(0);">
+            <p><label for="functionStr">Function:</label> <input type="text" name="functionStr" id="functionStr" size="100"></p>
+            <p style="float: left;"><img id="detailsImg" height="0" width="0" src=""></p>
+        </form>
+        <form style="float:left;" action="javascript:void(0);">
+            <p><label for="detailsWidth">Width: </label><input type="text" size="5" name="detailsWidth" id="detailsWidth" value="600"></p>
+            <p><label for="detailsHeight">Height: </label><input type="text" size="5" name="detailsHeight" id="detailsHeight" value="600"></p>
+            <p><input type="button" id="detailsResize" value="Show image" onclick="ppga.Class.makeResizedDetail(form.detailsWidth.value, form.detailsHeight.value);"></p>
+        </form>
+    </div>
 <!--#include virtual="/endOfBody.html"-->
 </body>
 </html>
