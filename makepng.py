@@ -6,6 +6,8 @@ import jsonsinglequote
 import math
 import cgitb; cgitb.enable()
 
+cache = 'postcache'
+
 def if_else(condition, trueVal, falseVal):
     if condition:
         return trueVal
@@ -35,7 +37,8 @@ fnInfo = {
    'div': {'children': 2, 'needsMap' : True},
    'mul': {'children': 2, 'needsMap' : True},
    'sub': {'children': 2, 'needsMap' : True},
-   'cc': {'children': 3}}
+   'ccrgb': {'children': 3},
+   'cchsl': {'children': 3}}
 
 
 
@@ -54,8 +57,52 @@ def makeMappingStrategyList(jsonObj):
         'w': (lambda l: [if_else(v == 1, 1, ((v+1)%2.0)-1) for v in l])
     }[jsonObj['m']]
 
+def finalHslToRgb(tc, q, p):
+    if (tc < (1.0/6.0)):
+        return p + ((q - p) * 6.0 * tc)
+    elif (tc < (1.0/2.0)):
+        return q
+    elif (tc < (2.0/3.0)):
+        return p + ((q - p) * ((2.0/3.0) - tc) * 6.0)
+    else:
+        return p
 
-
+def hslToRgb(c, x, y):
+    # get grayscale values for c[0], 1, 2?
+    hOrig = 0.3 * c[0][0] + 0.59 * c[0][1] + 0.11 * c[0][2]
+    sOrig = 0.3 * c[1][0] + 0.59 * c[1][1] + 0.11 * c[1][2]
+    lOrig = 0.3 * c[2][0] + 0.59 * c[2][1] + 0.11 * c[2][2]
+    # Scale h, s and l to be 0 to 1
+    h = (hOrig + 1.0) / 2.0
+    s = (sOrig + 1.0) / 2.0
+    l = (lOrig + 1.0) / 2.0
+    if (s == 0.0):
+        return [(l * 2.0 - 1.0) for i in range(0, 3)]
+    if (l < 0.5):
+        q = l * (1.0 + s)
+    else:
+        q = l + s - (l * s)
+    p = 2.0 * l - q
+    tr = h + (1.0/3.0)
+    tg = h
+    tb = h - (1.0/3.0)
+    if (tr < 0.0):
+        tr += 1.0
+    elif (tr > 1.0):
+        tr -= 1.0
+    if (tg < 0.0):
+        tg += 1.0
+    elif (tg > 1.0):
+        tg -= 1.0
+    if (tb < 0.0):
+        tb += 1.0
+    elif (tb > 1.0):
+        tb -= 1.0
+    cr = finalHslToRgb(tr, q, p)
+    cg = finalHslToRgb(tg, q, p)
+    cb = finalHslToRgb(tb, q, p)
+    return [(cr * 2.0 - 1.0), (cg * 2.0 - 1.0), (cb * 2.0 - 1.0)]
+    
 def simpleEval(jsonObj):
     return {
         'num': lambda c, x, y: [jsonObj['val'] for i in range(0,3)],
@@ -74,7 +121,8 @@ def simpleEval(jsonObj):
         'div': lambda c, x, y: [safe_ternary((c[0][1], c[1][i]), lambda x : x[1] == 0.0, lambda x: 0, lambda x: x[0]/x[1]) for i in range(0, 3)],
         'mul': lambda c, x, y: [c[0][i] * c[1][i] for i in range(0, 3)],
         'sub': lambda c, x, y: [c[0][i] - c[1][i] for i in range(0, 3)],
-        'cc': lambda c, x, y: [c[0][0], c[1][1], c[2][2]]
+        'ccrgb': lambda c, x, y: [c[0][0], c[1][1], c[2][2]],
+        'cchsl': hslToRgb
     }[jsonObj['t']]
 
 def makeEvaluator(jsonObj):
@@ -103,13 +151,11 @@ def makeEvaluatorOld(jsonObj):
     }[jsonObj['t']](jsonObj)
             
 form = cgi.FieldStorage()
-testJson = {'t':'num', 'val':.8}
-#print json.write(testJson)
 func = jsonsinglequote.read(form.getfirst('f'))
-#fn = makeEvaluator(func)
-#print func
 width = int(form.getfirst('w'))
 height = int(form.getfirst('h'))
+#if (form.getfirst('saveFunc') == 't'):
+     
 # Don't do anything unreasonably large
 if (width <= 0 or height <= 0 or width > 10000 or height > 10000):
     pass

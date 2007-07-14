@@ -6,7 +6,7 @@ fns = open ('functions', 'r')
 fileNum = 0
 timingRe = re.compile('^([0-9.]+)user')
 times = []
-dirname = 'test'
+dirname = 'testdir'
 d = 0
 while os.path.exists('%s%d' %(dirname, d)):
     d = d + 1

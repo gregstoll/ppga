@@ -17,6 +17,8 @@ ppga.Class = {
     NUM_ZERO_NODES : 3,
     // Number of images in a generation (ids starting at 'img1')
     NUM_IMAGES : 20,
+    // Default image size
+    DEFAULT_IMAGE_SIZE: 140,
     // Map of id to current function
     curFns : {},
     selectedFns : {},
@@ -39,7 +41,8 @@ ppga.Class = {
        {'type': 'div', 'children': 2, 'needsMap': true},
        {'type': 'mul', 'children': 2, 'needsMap': true},
        {'type': 'sub', 'children': 2, 'needsMap': true},
-       {'type': 'cc', 'children': 3}],
+       {'type': 'ccrgb', 'children': 3},
+       {'type': 'cchsl', 'children': 3}],
     // http://javascript.crockford.com/memory/leak.html
     purge: function(d) {
         var a = d.attributes, i, l, n;
@@ -256,7 +259,7 @@ ppga.Class = {
             var fn = this.makeRandomFn(0.0);
             this.curFns[curId] = fn;
             this.incImagesToLoad();
-            this.setImage(fn, 140, 140, curId);
+            this.setImage(fn, this.DEFAULT_IMAGE_SIZE, this.DEFAULT_IMAGE_SIZE, curId);
         }
     },
     init: function() {
@@ -269,6 +272,9 @@ ppga.Class = {
             $("#" + curId).error(function() {ppga.Class.load(this.id, false);});
             $("#" + curId).addClass('img');
         }
+        $("#detailsWidth").keyup(this.listenForEnter);
+        $("#detailsHeight").keyup(this.listenForEnter);
+        $("#functionStr").keyup(this.listenForEnter);
         this.makeRandomImages();
     },
     uninit: function() {
@@ -277,6 +283,15 @@ ppga.Class = {
             this.purge(document.getElementById(curId));
         } 
         this.purge(document.getElementById('detailsImg'));
+        this.purge(document.getElementById('detailsWidth'));
+        this.purge(document.getElementById('detailsHeight'));
+        this.purge(document.getElementById('functionStr'));
+    },
+    listenForEnter: function(event) {
+        var keyCode = event.keyCode ? event.keyCode : event.which ? event.which : event.charCode;
+        if (keyCode == 13) {
+            $("#detailsResize").click();
+        }
     },
     isSelected: function(id) {
         return (id in this.selectedFns && this.selectedFns[id]);
@@ -439,7 +454,7 @@ ppga.Class = {
         //alert(Object.toJSONString(fn));
         $('#fnDesc').empty();
         $('#fnDesc').append(Object.toJSONString(fn) + " " + Object.toJSONString(fn).length);
-        this.setImage(fn, 140, 140, 'testImg');
+        this.setImage(fn, this.DEFAULT_IMAGE_SIZE, this.DEFAULT_IMAGE_SIZE, 'testImg');
     }
 };
 
