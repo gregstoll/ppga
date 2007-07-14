@@ -40,6 +40,26 @@ ppga.Class = {
        {'type': 'mul', 'children': 2, 'needsMap': true},
        {'type': 'sub', 'children': 2, 'needsMap': true},
        {'type': 'cc', 'children': 3}],
+    // http://javascript.crockford.com/memory/leak.html
+    purge: function(d) {
+        var a = d.attributes, i, l, n;
+        if (a) {
+            l = a.length;
+            for (i = 0; i < l; i += 1) {
+                n = a[i].name;
+                if (typeof d[n] === 'function') {
+                    d[n] = null;
+                }
+            }
+        }
+        a = d.childNodes;
+        if (a) {
+            l = a.length;
+            for (i = 0; i < l; i += 1) {
+                purge(d.childNodes[i]);
+            }
+        }
+    },
 
     getFnInfo: function(type) {
         for (var i = 0; i < this.fnInfo.length; ++i) {
@@ -153,6 +173,19 @@ ppga.Class = {
         var f1size = this.getNumberOfNodes(f1);
         return this.mutate(this.splice(f1, Math.floor(Math.random() * f1size), source), this.MUTATION_PROB);
     },
+    nextGenStep: function(fns, i) {
+        var fnsSize = fns.length;
+        var fn1 = this.clone(fns[Math.floor(Math.random() * fnsSize)]);
+        var fn2 = this.clone(fns[Math.floor(Math.random() * fnsSize)]);
+        var newFn = this.breedFns(fn1, fn2);
+        var curId = 'img' + i;
+        this.curFns[curId] = newFn;
+        this.incImagesToLoad();
+        this.setImage(newFn, 0, 0, curId);
+        if (i < this.NUM_IMAGES) {
+            setTimeout(function() {ppga.Class.nextGenStep(fns, i+1);}, 200);
+        }
+    },
     nextGeneration: function() {
         // TODO - use fitness functions
         var fns = [];
@@ -165,20 +198,13 @@ ppga.Class = {
         var fnsSize = fns.length;
         this.resetImagesToLoad();
         for (var i = 1; i <= this.NUM_IMAGES; ++i) {
-            // TODO - use setTimeout() here.
-            var fn1 = this.clone(fns[Math.floor(Math.random() * fnsSize)]);
-            var fn2 = this.clone(fns[Math.floor(Math.random() * fnsSize)]);
-            var newFn = this.breedFns(fn1, fn2);
             var curId = 'img' + i;
             if (this.isSelected(curId)) {
-                //alert('id ' + curId + ' is selected');
                 this.selectImage(curId);
             }
-            this.curFns[curId] = newFn;
-            this.incImagesToLoad();
-            this.setImage(newFn, 0, 0, curId);
         }
         this.selectedFns = {};
+        this.nextGenStep(fns, 1); 
     },
 
     makeRandomFn: function (randomProb) {
@@ -244,6 +270,13 @@ ppga.Class = {
             $("#" + curId).addClass('img');
         }
         this.makeRandomImages();
+    },
+    uninit: function() {
+        for (var i = 1; i <= this.NUM_IMAGES; ++i) {
+            var curId = 'img' + i;
+            this.purge(document.getElementById(curId));
+        } 
+        this.purge(document.getElementById('detailsImg'));
     },
     isSelected: function(id) {
         return (id in this.selectedFns && this.selectedFns[id]);
@@ -412,5 +445,6 @@ ppga.Class = {
 
 (function() {
     $(document).ready(function() {ppga.Class.init();});
+    $(document).unload(function() {ppga.Class.uninit();});
 })();
 //]]>
