@@ -125,30 +125,68 @@ def simpleEval(jsonObj):
         'cchsl': hslToRgb
     }[jsonObj['t']]
 
+def makeTopEvaluator(jsonObj):
+    eval = makeEvaluator(jsonObj)
+    oldEval = eval['eval']
+    eval['eval'] = lambda xs, ys: coerceResults(oldEval(xs, ys), xs, ys, eval['dep'], {'x': True, 'y': True})
+    return eval
+
 def makeEvaluator(jsonObj):
     toReturn = {}
     typeInfo = fnInfo[jsonObj['t']]
     if (typeInfo['children'] > 0):
         toReturn['c'] = [makeEvaluator(jsonObj['ch'][i]) for i in range(0, len(jsonObj['ch']))]
+    # Figure out if we depend on x, y, or neither
+    toReturn['dep'] = {}
+    toReturn['dep']['x'] = (jsonObj['t'] == 'x')
+    toReturn['dep']['y'] = (jsonObj['t'] == 'y')
+    if ('c' in toReturn):
+        for child in toReturn['c']:
+            for xy in ['x', 'y']:
+                if (child['dep'][xy]):
+                    toReturn['dep'][xy] = True
     simEval = simpleEval(jsonObj)
     if ('needsMap' in typeInfo and typeInfo['needsMap']):
         mapStrat = makeMappingStrategyList(jsonObj)
     else:
         mapStrat = lambda l: l
-    if (typeInfo['children'] > 0):
-        toReturn['eval'] = lambda x, y: mapStrat(simEval([toReturn['c'][i]['eval'](x,y) for i in range(0, len(toReturn['c']))], x, y))
-    else:
-        toReturn['eval'] = lambda x, y: mapStrat(simEval([], x, y))
+    toReturn['eval'] = lambda xs, ys: xyAdapter(toReturn, mapStrat, simEval, xs, ys)
     return toReturn
 
-def makeEvaluatorOld(jsonObj):
-    return {
-       'num': (lambda jo: {'eval': (lambda this, x, y: [jo['val'] for i in range(0,3)])}),
-       'x': (lambda jo: {'eval': (lambda this, x, y: [x for i in range(0,3)])}),
-       'y': (lambda jo: {'eval': (lambda this, x, y: [y for i in range(0,3)])}),
-       'atan': (lambda jo: {'c': [makeEvaluatorOld(jsonObj['ch'][0])], 'eval': (lambda this, x, y: [makeMappingStrategy(jo)(math.atan(v)) for v in this['c'][0]['eval'](this['c'][0], x,y)])}),
-       'add': (lambda jo: {'c': [makeEvaluatorOld(jsonObj['ch'][0]), makeEvaluatorOld(jsonObj['ch'][1])], 'eval': (lambda this, x, y: [makeMappingStrategy(jo)(v1 + v2) for (v1,v2) in zip(this['c'][0]['eval'](this['c'][0],x,y), this['c'][1]['eval'](this['c'][1],x,y))])}),
-    }[jsonObj['t']](jsonObj)
+# Results are listed in row order - (x0, y0), (x1, y0), ...,  (xn, y0), (x0, y1)
+# etc.
+def coerceResults(results, xs, ys, sourceDeps, targetDeps):
+    coerceY = sourceDeps['y'] == False and targetDeps['y'] == True
+    coerceX = sourceDeps['x'] == False and targetDeps['x'] == True
+    if (coerceY):
+        results = [r for y in ys for r in results]
+    if (coerceX):
+        results = [r for r in results for x in xs]
+    return results
+
+def xyAdapter(fnObj, mapStrat, simEval, xs, ys):
+    childResults = []
+    if ('c' in fnObj):
+        for childObj in fnObj['c']:
+            childResults.append(coerceResults(childObj['eval'](xs, ys), xs, ys, childObj['dep'], fnObj['dep']))
+    if (not fnObj['dep']['x']):
+        xs = [0.0]
+    if (not fnObj['dep']['y']):
+        ys = [0.0]
+    childArgs = zip(*childResults)
+    xys = [(x, y) for y in ys for x in xs]
+    if ('c' in fnObj):
+        return [mapStrat(simEval(c, x, y)) for ((x, y), c) in zip(xys, childArgs)]
+    else:
+        return [mapStrat(simEval([], x, y)) for (x, y) in xys]
+#def makeEvaluatorOld(jsonObj):
+#    return {
+#       'num': (lambda jo: {'eval': (lambda this, x, y: [jo['val'] for i in range(0,3)])}),
+#       'x': (lambda jo: {'eval': (lambda this, x, y: [x for i in range(0,3)])}),
+#       'y': (lambda jo: {'eval': (lambda this, x, y: [y for i in range(0,3)])}),
+#       'atan': (lambda jo: {'c': [makeEvaluatorOld(jsonObj['ch'][0])], 'eval': (lambda this, x, y: [makeMappingStrategy(jo)(math.atan(v)) for v in this['c'][0]['eval'](this['c'][0], x,y)])}),
+#       'add': (lambda jo: {'c': [makeEvaluatorOld(jsonObj['ch'][0]), makeEvaluatorOld(jsonObj['ch'][1])], 'eval': (lambda this, x, y: [makeMappingStrategy(jo)(v1 + v2) for (v1,v2) in zip(this['c'][0]['eval'](this['c'][0],x,y), this['c'][1]['eval'](this['c'][1],x,y))])}),
+#    }[jsonObj['t']](jsonObj)
             
 form = cgi.FieldStorage()
 func = jsonsinglequote.read(form.getfirst('f'))
@@ -161,9 +199,7 @@ if (width <= 0 or height <= 0 or width > 10000 or height > 10000):
     pass
 else:
     c = pngcanvas.PNGCanvas(width, height)
-    #print makeEvaluator(testJson)
-    #print (makeEvaluator(testJson))(0,0)
-    c.apply(makeEvaluator(func))
+    c.apply(makeTopEvaluator(func))
 
     print "Content-type: image/png\n"
     print c.dump()
