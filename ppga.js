@@ -265,13 +265,12 @@ ppga.Class = {
     init: function() {
         for (var i = 1; i <= this.NUM_IMAGES; ++i) {
             var curId = 'img' + i;
-            //curImg.onclick = function() {ppga.Class.selectImage(this.id);};
-            $("#" + curId).click(function() {ppga.Class.selectImage(this.id);});
-            $("#" + curId).dblclick(function() {ppga.Class.details(this.id);});
-            $("#" + curId).load(function() {ppga.Class.load(this.id, true);});
-            $("#" + curId).error(function() {ppga.Class.load(this.id, false);});
             $("#" + curId).addClass('img');
         }
+        $(".img").click(function() {ppga.Class.selectImage(this.id);});
+        $(".img").dblclick(function() {ppga.Class.details(this.id);});
+        $(".img").load(function() {ppga.Class.load(this.id, true);});
+        $(".img").error(function() {ppga.Class.load(this.id, false);});
         $("#detailsWidth").keyup(this.listenForEnter);
         $("#detailsHeight").keyup(this.listenForEnter);
         $("#functionStr").keyup(this.listenForEnter);
@@ -418,6 +417,27 @@ ppga.Class = {
         img.error(function() {ppga.Class.load(this.id, false);});
         img.attr({width: w, height: h, src: this.makeCgiURL(w, h, this.detailFn)});
     },
+    loadFnIntoGen: function(fn, id) {
+        this.curFns[id] = fn;
+        this.resetImagesToLoad();
+        this.incImagesToLoad();
+        this.setImage(fn, 0, 0, id);
+        this.cancelLoadFnIntoGen();
+    },
+    cancelLoadFnIntoGen: function() {
+        $("body").unbind('mousedown');
+        $(".img").unbind('mousedown');
+        $("#selectFnImg").css({'display': 'none'});
+    },
+    loadIntoGen: function(fStr) {
+        fStr = fStr.strip();
+        if (fStr != '') {
+            fn = this.parseFriendlyString(fStr)['fn'];
+            $(".img").mousedown(function() {ppga.Class.loadFnIntoGen(fn, this.id);});
+            $("body").mousedown(function() {ppga.Class.cancelLoadFnIntoGen();});
+            $("#selectFnImg").css({'display': 'block'});
+        }
+    },
     details: function(id) {
         var startWidth = parseInt($('#detailsWidth').attr("value"));
         var startHeight = parseInt($('#detailsHeight').attr("value"));
@@ -427,7 +447,6 @@ ppga.Class = {
         this.detailFn = fn;
         $('#detailsResize').attr({value: "Resize image"});
         $('#functionStr').attr({value: this.friendlyString(fn)});
-        /*detailsDiv.append('<p>Function: ' + this.friendlyString(fn) + '</p><p style="float:left;"><img id="detailsImg" height="' + startHeight + '" width="' + startWidth + '" src="' + this.makeCgiURL(startWidth, startHeight, fn) + '"></p><form style="float:left;" action="javascript:void(0);"><p><label for="detailsWidth">Width: </label><input type="text" size="5" name="detailsWidth" id="detailsWidth" value="' + startWidth + '"></p><p><label for="detailsHeight">Height: </label><input type="text" size="5" name="detailsHeight" id="detailsHeight" value="' + startHeight + '"></p><p><input type="button" value="Resize image" onclick="ppga.Class.makeResizedDetail(form.detailsWidth.value, form.detailsHeight.value);"></form>');*/
         this.incImagesToLoad();
         $('#detailsImg').load(function() {ppga.Class.load(this.id, true);});
         $('#detailsImg').error(function() {ppga.Class.load(this.id, false);});
