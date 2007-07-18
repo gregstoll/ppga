@@ -107,7 +107,7 @@ ppga.Class = {
         var total = 1;
         if ('ch' in fn) {
             for (var i = 0; i < fn['ch'].length; ++i) {
-                total += this.getNumberOfNodes(fn['ch']);
+                total += this.getNumberOfNodes(fn['ch'][i]);
             }
         }
         return total;
@@ -136,6 +136,7 @@ ppga.Class = {
             var numChildNodes = this.getNumberOfNodes(target['ch'][i]);
             if (num < numChildNodes) {
                 target['ch'][i] = this.splice(target['ch'][i], num, source);
+                break;
             } else {
                 num -= numChildNodes;
             }
