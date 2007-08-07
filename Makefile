@@ -1,4 +1,4 @@
 default: MakePngTest
 
 MakePngTest: MakePngTest.hs MakePng.hs
-	ghc -O --make -o MakePngTest MakePngTest.hs
+	ghc -O -fglasgow-exts --make -o MakePngTest MakePngTest.hs
