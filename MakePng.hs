@@ -3,6 +3,7 @@ module MakePng where
 import System.IO
 import JSON
 import qualified Data.Map as M
+import qualified Codec.Compression.Zlib as Z
 
 data Fn = Num | X | Y | Atan | Abs | Cos | Exp | Log | Neg | Rd | Ru | Sin | Add | Div | Mul | Sub | Ccrgb | Cchsl | Unknown deriving (Enum, Eq)
 instance Read Fn where
@@ -141,7 +142,7 @@ simpleEval Cchsl _ [c1, c2, c3] _ _ = hslToRgb c1 c2 c3
 simpleEval _ _ _ _ _ = (0.0, 0.0, 0.0)
 
 evalAtPixel :: (Double, Double) -> FullFn -> (Double, Double, Double)
-evalAtPixel (x,y) fullfn = simpleEval (getFnFromValue (fullfn M.! "t")) fullfn (map (evalAtPixel (x,y)) (getChildrenFromValue (fullfn M.! "ch"))) x y
+evalAtPixel (x,y) fullfn = simpleEval (getFnFromValue (fullfn M.! "t")) fullfn (map (evalAtPixel (x,y)) (getChildrenFromValue (M.findWithDefault Null "ch" fullfn))) x y
 
 getChildrenFromValue :: Value -> [FullFn]
 getChildrenFromValue (Array vs) = map getFullFnFromValue vs
@@ -152,9 +153,10 @@ getFullFnFromValue (Object fn) = fn
 
 getFnFromValue :: Value -> Fn
 getFnFromValue (String s) = read s
+
 valueToDouble :: Value -> Double
 valueToDouble (Number n) = n
-valueToDouble _ = 0.0
+valueToDouble _ = 0.0 -- TODO - error?
 
 -- Taken from http://haskell.org/ghc/docs/6.0.1/html/users_guide/pragmas.html
 toDouble :: Real a => a -> Double
@@ -170,6 +172,11 @@ singleQuoteToDouble :: Char -> Char
 singleQuoteToDouble '\'' = '"'
 singleQuoteToDouble c = c
 
-evalFunction :: Int -> Int -> Maybe Value -> [[(Int, Int, Int)]]
+getPoints :: (Fractional a, Enum a, Fractional b, Enum b) => a -> b -> [[(a, b)]]
+getPoints width height = [[(x,y) | x <- xs] | y <- ys]
+                         where xs = [-1.0,-1.0+(2.0/width) .. 1.0]
+                               ys = [1.0, 1.0-(2.0/height) .. -1.0]
+
+evalFunction :: Int -> Int -> Maybe Value -> [[(Double, Double, Double)]]
 evalFunction _ _ Nothing = [[]]
---evalFunction width height Just Object o = 
+evalFunction width height (Just v) = [map (\pt -> evalAtPixel pt (getFullFnFromValue v)) x | x <- getPoints (toDouble width) (toDouble height)]
