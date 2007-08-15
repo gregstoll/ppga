@@ -4,6 +4,9 @@ import System.IO
 import JSON
 import qualified Data.Map as M
 import qualified Codec.Compression.Zlib as Z
+import Data.Word
+import qualified Data.ByteString as B
+import Data.Char (chr)
 
 data Fn = Num | X | Y | Atan | Abs | Cos | Exp | Log | Neg | Rd | Ru | Sin | Add | Div | Mul | Sub | Ccrgb | Cchsl | Unknown deriving (Enum, Eq)
 instance Read Fn where
@@ -86,6 +89,9 @@ mappingFn Wrap d = if d == 1.0 then 1.0
                    where quot = (d+1.0) / 2.0
 mappingFn UnknownMapping d = d
 
+doubleToWord8 :: Integral t => Double -> t
+doubleToWord8 d = round ((d + 1.0) * (255.0/2.0))
+
 finalHslToRgb :: Double -> Double -> Double -> Double
 finalHslToRgb tc q p | tc < (1.0/6.0) = p + ((q-p) * 6.0 * tc)
                      | tc < (1.0/2.0) = q
@@ -116,27 +122,32 @@ hslToRgb c1 c2 c3 = if (s == 0.0)
                           cg = finalHslToRgb tg q p
                           cb = finalHslToRgb tb q p
 
-oneEval :: (Double -> Double) -> (Double, Double, Double) -> (Double, Double, Double)
+oneEval :: (Double -> t) -> (Double, Double, Double) -> (t, t, t)
 oneEval f (a,b,c) = (f a, f b, f c)
 
+
+mapWrap :: FullFn -> (Double, Double, Double) -> (Double, Double, Double)
+mapWrap obj vals = oneEval (mappingFn (read $ getStrFromValue $ M.findWithDefault (String "xx") "m" obj)) vals
+
 -- type of function, child values, x, y
+-- TODO - wrap/clip
 simpleEval :: Fn -> FullFn -> [(Double, Double, Double)] -> Double -> Double -> (Double, Double, Double)
 simpleEval X _ [] x _ = (x, x, x)
 simpleEval Y _ [] _ y = (y, y, y)
 simpleEval Num obj [] _ _ = let v = valueToDouble (obj M.! "val") in (v,v,v)
-simpleEval Atan _ [c] _ _ = oneEval atan c
+simpleEval Atan obj [c] _ _ = mapWrap obj (oneEval atan c)
 simpleEval Abs _ [c] _ _ = oneEval abs c
 simpleEval Cos _ [c] _ _ = oneEval cos c
-simpleEval Exp _ [c] _ _ = oneEval exp c
-simpleEval Log _ [c] _ _ = oneEval (\x -> if x <= 0.0 then 0.0 else log x) c
+simpleEval Exp obj [c] _ _ = mapWrap obj (oneEval exp c)
+simpleEval Log obj [c] _ _ = mapWrap obj (oneEval (\x -> if x <= 0.0 then 0.0 else log x) c)
 simpleEval Neg _ [c] _ _ = oneEval ((-1) *) c
 simpleEval Rd _ [c] _ _ = oneEval (toDouble . floor) c
 simpleEval Ru _ [c] _ _ = oneEval (toDouble . ceiling) c
 simpleEval Sin _ [c] _ _ = oneEval sin c
-simpleEval Add _ [c1, c2] _ _ = (t1 c1 + t1 c2, t2 c1 + t2 c2, t3 c1 + t3 c2)
-simpleEval Div _ [c1, c2] _ _ = (safeDiv (t1 c1) (t1 c2), safeDiv (t2 c1) (t2 c2), safeDiv (t3 c1) (t3 c2))
-simpleEval Mul _ [c1, c2] _ _ = (t1 c1 * t1 c2, t2 c1 * t2 c2, t3 c1 * t3 c2)
-simpleEval Sub _ [c1, c2] _ _ = (t1 c1 - t1 c2, t2 c1 - t2 c2, t3 c1 - t3 c2)
+simpleEval Add obj [c1, c2] _ _ = mapWrap obj (t1 c1 + t1 c2, t2 c1 + t2 c2, t3 c1 + t3 c2)
+simpleEval Div obj [c1, c2] _ _ = mapWrap obj (safeDiv (t1 c1) (t1 c2), safeDiv (t2 c1) (t2 c2), safeDiv (t3 c1) (t3 c2))
+simpleEval Mul obj [c1, c2] _ _ = mapWrap obj (t1 c1 * t1 c2, t2 c1 * t2 c2, t3 c1 * t3 c2)
+simpleEval Sub obj [c1, c2] _ _ = mapWrap obj (t1 c1 - t1 c2, t2 c1 - t2 c2, t3 c1 - t3 c2)
 simpleEval Ccrgb _ [c1, c2, c3] _ _ = (t1 c1, t2 c2, t3 c3)
 simpleEval Cchsl _ [c1, c2, c3] _ _ = hslToRgb c1 c2 c3
 simpleEval _ _ _ _ _ = (0.0, 0.0, 0.0)
@@ -153,6 +164,10 @@ getFullFnFromValue (Object fn) = fn
 
 getFnFromValue :: Value -> Fn
 getFnFromValue (String s) = read s
+
+getStrFromValue :: Value -> String
+getStrFromValue (String s) = s
+getStrFromValue _ = ""
 
 valueToDouble :: Value -> Double
 valueToDouble (Number n) = n
@@ -174,9 +189,36 @@ singleQuoteToDouble c = c
 
 getPoints :: (Fractional a, Enum a, Fractional b, Enum b) => a -> b -> [[(a, b)]]
 getPoints width height = [[(x,y) | x <- xs] | y <- ys]
-                         where xs = [-1.0,-1.0+(2.0/width) .. 1.0]
-                               ys = [1.0, 1.0-(2.0/height) .. -1.0]
+                         where xs = [-1.0,-1.0+(2.0/(width - 1)) .. 1.0]
+                               ys = [1.0, 1.0-(2.0/(height - 1)) .. -1.0]
 
 evalFunction :: Int -> Int -> Maybe Value -> [[(Double, Double, Double)]]
 evalFunction _ _ Nothing = [[]]
 evalFunction width height (Just v) = [map (\pt -> evalAtPixel pt (getFullFnFromValue v)) x | x <- getPoints (toDouble width) (toDouble height)]
+
+flatten :: [[a]] -> [a]
+flatten = foldl (++) []
+
+functionResultToString :: (Double, Double, Double) -> [Word8]
+functionResultToString val = [doubleToWord8 $ t1 val, doubleToWord8 $ t2 val, doubleToWord8 $ t3 val]
+
+functionResultsToString :: [[(Double, Double, Double)]] -> B.ByteString
+functionResultsToString vals = B.pack (flatten [0:(flatten $ map functionResultToString row) | row <- vals])
+
+--getFunctionPNGString :: Int -> Int -> Maybe Value -> B.ByteString
+--getFunctionPNGString w h v = B.append (getPNGHeader w h) (functionResultsToString $ evalFunction w h v)
+
+--getPNGHeader :: Int -> Int -> B.ByteString
+--getPNGHeader w h = B.pack ([137,80,78,71,13,10,26,10] ++ )
+
+--makeChunk :: String -> B.ByteString -> B.ByteString
+--makeChunk tag dat = (B.length dat) :: Word32
+
+getFunctionPPMString :: Int -> Int -> Maybe Value -> String
+getFunctionPPMString width height v = "P6 " ++ show width ++ " " ++ show height ++ " 255\n" ++ (functionEvalToPPM $ evalFunction width height v)
+
+functionEvalToPPM :: [[(Double, Double, Double)]] -> String
+functionEvalToPPM vals = foldl (++) "" [foldl (++) "" (map functionPointToPPM row)  | row <- vals]
+
+functionPointToPPM :: (Double, Double, Double) -> String
+functionPointToPPM (x, y, z) = [chr (doubleToWord8 x), chr (doubleToWord8 y), chr (doubleToWord8 z)]
