@@ -14,7 +14,8 @@ dirname = '%s%d' %(dirname, d)
 os.mkdir(dirname)
 for line in fns.readlines():
     args = line[:-1]
-    cmd = '/usr/bin/time ../makepng.py "%s" > %s/png%d.png' % (args, dirname, fileNum)
+    #cmd = '/usr/bin/time ../makepng.py "%s" > %s/png%d.png' % (args, dirname, fileNum)
+    cmd = '/usr/bin/time ../cgiTester "%s" > %s/png%d.png' % (args, dirname, fileNum)
     timeTaken = 0.0
     for timeoutput in os.popen4(cmd)[1].readlines():
         timingMatch = timingRe.match(timeoutput)
