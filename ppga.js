@@ -185,7 +185,7 @@ ppga.Class = {
         var curId = 'img' + i;
         this.curFns[curId] = newFn;
         this.incImagesToLoad();
-        this.setImage(newFn, 0, 0, curId);
+        this.setImage(newFn, this.DEFAULT_IMAGE_SIZE, this.DEFAULT_IMAGE_SIZE, curId);
         if (i < this.NUM_IMAGES) {
             setTimeout(function() {ppga.Class.nextGenStep(fns, i+1);}, 200);
         }
@@ -242,14 +242,10 @@ ppga.Class = {
     setImage: function(fn, width, height, imgId) {
         // FFV - worry about doing POST here?
         var img = document.getElementById(imgId);
-        if (width > 0) {
-            img.width = width;
-        }
-        if (height > 0) {
-            img.height = height;
-        }
+        img.width = width;
+        img.height = height;
         //alert(Object.toJSONString(fn));
-        var newSrc = this.makeCgiURL(img.width, img.height, fn);
+        var newSrc = this.makeCgiURL(width, height, fn);
         img.src = newSrc;
         //alert("done");
     },
@@ -268,6 +264,7 @@ ppga.Class = {
             var curId = 'img' + i;
             $("#" + curId).addClass('img');
         }
+        $(".img").width(120).height(120);
         $(".img").click(function() {ppga.Class.selectImage(this.id);});
         $(".img").dblclick(function() {ppga.Class.details(this.id);});
         $(".img").load(function() {ppga.Class.load(this.id, true);});
@@ -422,7 +419,7 @@ ppga.Class = {
         this.curFns[id] = fn;
         this.resetImagesToLoad();
         this.incImagesToLoad();
-        this.setImage(fn, 0, 0, id);
+        this.setImage(fn, this.DEFAULT_IMAGE_SIZE, this.DEFAULT_IMAGE_SIZE, id);
         this.cancelLoadFnIntoGen();
     },
     cancelLoadFnIntoGen: function() {
