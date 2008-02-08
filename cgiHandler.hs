@@ -11,8 +11,9 @@ cgiMain :: CGI CGIResult
 cgiMain = do width <- getInput "w"
              height <- getInput "h"
              fn <- getInput "f"
-             setHeader "Content-Type" "image/x-portable-pixmap"
-             output (getFunctionPPMString (inputToInt width) (inputToInt height) (parseIncomingJSON (maybe "" id fn)))
+             setHeader "Content-Type" "image/png"
+--             output (getFunctionPPMString (inputToInt width) (inputToInt height) (parseIncomingJSON (maybe "" id fn)))
+             output (getFunctionPNGString (inputToInt width) (inputToInt height) (parseIncomingJSON (maybe "" id fn)))
 
 main :: IO ()
 main = runCGI (handleErrors cgiMain)

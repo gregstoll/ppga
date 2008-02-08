@@ -2,6 +2,7 @@ module MakePng where
 
 import System.IO
 import JSON
+import Png (colorPng)
 import qualified Data.Map as M
 import qualified Codec.Compression.Zlib as Z
 import Data.Word
@@ -214,8 +215,14 @@ functionResultsToString vals = B.pack (flatten [0:(flatten $ map functionResultT
 --makeChunk :: String -> B.ByteString -> B.ByteString
 --makeChunk tag dat = (B.length dat) :: Word32
 
+getFunctionPNGString :: Int -> Int -> Maybe Value -> String
+getFunctionPNGString width height v = colorPng (functionEvalToRGB $ evalFunction width height v)
+
 getFunctionPPMString :: Int -> Int -> Maybe Value -> String
 getFunctionPPMString width height v = "P6 " ++ show width ++ " " ++ show height ++ " 255\n" ++ (functionEvalToPPM $ evalFunction width height v)
+
+functionEvalToRGB :: [[(Double, Double, Double)]] -> [[(Word8, Word8, Word8)]]
+functionEvalToRGB vals = map (map (\x -> (doubleToWord8 $ t1 x, doubleToWord8 $ t2 x, doubleToWord8 $ t3 x))) vals
 
 functionEvalToPPM :: [[(Double, Double, Double)]] -> String
 functionEvalToPPM vals = foldl (++) "" [foldl (++) "" (map functionPointToPPM row)  | row <- vals]
