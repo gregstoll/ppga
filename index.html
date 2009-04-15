@@ -54,6 +54,7 @@ p.fixed {
         <p><input type="button" value="New generation" onclick="ppga.Class.makeRandomImages();"><input type="button" id="nextGenButton" value="Next generation" onclick="ppga.Class.nextGeneration();" disabled><img id="status" class="fixed" style="display: none;" src="loading.gif" alt="Loading..."></p>
         <p id="selectFnImg" class="fixed" style="display: none; width: 200px; height: 20px; background-color: rgb(208, 208, 208);">Click which image to load</p>
         <p>Select the pictures to breed together and click "Next generation".  Double-click on a picture to see a larger version.  You can load the function of an existing picture in the <a href="#details">"Details" section below</a>.</p>
+        <p><label for="newHaveColor">Ensure new top nodes have color:</label><input type="checkbox" name="newHaveColor" id="newHaveColor" checked="checked"></p>
     </form>
     <table>
         <tr><td><img id="img1" src="" alt=""></td><td><img id="img2" src="" alt=""></td><td><img id="img3" src="" alt=""></td><td><img id="img4" src="" alt=""></td><td><img id="img5" src="" alt=""></td></tr>
@@ -96,6 +97,12 @@ JSON (using single quotes instead of double quotes, so they don't have to be URL
     <li><a href="jsonsinglequote.txt">jsonsinglequote.py</a> - modified version of <a href="http://cheeseshop.python.org/pypi/python-json">python-json</a> that accepts single quotes instead of double quotes.</li>
     <li><a href="pngcanvas.txt">pngcanvas.py</a> - Python library for writing PNG files taken from <a href="http://the.taoofmac.com/space/Projects/PNGCanvas">here</a>, modified to accept a function to draw.</li>
     <li><a href="makepng.txt">makepng.cgi</a> - Draws a PNG file given a function.</li>
+</ul>
+<p>I also am working on a version in Haskell; here are the source files:</p>
+<ul>
+    <li><a href="Png.hs.txt">Png.hs</a> - code to write (and hopefully read someday) PNG files - taken from <a href="http://haskell.org/haskellwiki/Library/PNG">here</a> and modified.</li>
+    <li><a href="MakePng.hs.txt">MakePng.hs</a> - draws the PNG file given a function.</li>
+    <li><a href="cgiHandler.hs.txt">cgiHandler.hs</a> - the CGI handler.</li>
 </ul>
 <p>Here's the list of functions.  Ones with a * can take their values outside
 [-1,1], and so must be followed by "-clip" or "-wrap" (describing how they
