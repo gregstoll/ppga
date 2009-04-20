@@ -1,4 +1,4 @@
-default: MakePngTest cgiHandler cgiTester PngTest
+default: MakePngTest cgiHandler cgiTester PngTest writepng
 
 MakePngTest: MakePngTest.hs MakePng.hs
 	ghc -O -fglasgow-exts --make -o MakePngTest MakePngTest.hs
@@ -11,3 +11,6 @@ cgiTester: cgiTester.hs MakePng.hs
 
 PngTest: Png.hs PngTest.hs
 	ghc -O -fglasgow-exts -fth --make -o PngTest PngTest.hs
+
+writepng: writepng.cpp
+	g++ -O -Wall -o writepng -lpng writepng.cpp
