@@ -25,7 +25,6 @@ void writepng_version_info()
 }
 
 void user_write_data(png_structp png_ptr, png_bytep data, png_size_t length) {
-    //cerr << "TODO - writing " << length << " bytes" << endl;
     size_t oldSize = pngOutput.size();
     pngOutput.resize(oldSize + length);
     // TODO - isn't there a better way to do this?
@@ -34,7 +33,6 @@ void user_write_data(png_structp png_ptr, png_bytep data, png_size_t length) {
 
 void user_flush_data(png_structp png_ptr) {
     // Nothing to do.
-    //cerr << "TODO - flush" << endl;
 }
 
 
@@ -154,7 +152,7 @@ class DoWrap<Wrap> {
 
 // FFV - we could optimize by only calculating r, g, or b depending on what
 // the higher functions need.
-void render_function(json::grammar<char>::variant funcJson, double_color* output, int width, int height) {
+void render_function(json::grammar<char>::variant funcJson, double_color* output, int width, int height, bool topLevel) {
     double_color* color_data_temp1 = NULL;
     double_color* color_data_temp2 = NULL;
     double_color* color_data_temp3 = NULL;
@@ -167,7 +165,7 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
         if (objectIt == funcObj.end()) {
             throw "Function has no t member!";
         }
-        string t = boost::any_cast< string >(*objectIt);
+        string t = boost::any_cast< string >(*(objectIt->second));
         // FFV - we could do some crazy map here or something, but come on.
         // Or we could have a function for each type, once you evaluate its
         // arguments.
@@ -192,11 +190,11 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
             double deltaX = 2.0 / width;
             double deltaY = 2.0 / height;
             double x = -1.0;
-            double y = -1.0;
+            double y = 1.0;
             double_color* tempPtr = output;
-            for (int yIt = 0; yIt < height; ++yIt, y += deltaY) {
+            for (int yIt = 0; yIt < height; ++yIt, y -= deltaY) {
                 for (int xIt = 0; xIt < width; ++xIt, x += deltaX) {
-                    tempPtr->red = tempPtr->green = tempPtr->blue = renderFn(xIt, yIt, aux);
+                    tempPtr->red = tempPtr->green = tempPtr->blue = renderFn(x, y, aux);
                     ++tempPtr;
                 }
             }
@@ -206,14 +204,14 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
             if (objectIt == funcObj.end()) {
                 throw "arg function has no ch member!";
             }
-            json::grammar<char>::array const &argArray = boost::any_cast< json::grammar<char>::array >(*objectIt);
+            json::grammar<char>::array const &argArray = boost::any_cast< json::grammar<char>::array >(*(objectIt->second));
  
             if (t == "atan" || t == "abs" || t == "cos" || t == "exp" || t == "log" || t == "neg" || t == "rd" || t == "ru" || t == "sin") {
                 // Do the one-arg ones.
                 // First, we have to recur.
                 color_data_temp1 = new double_color[width * height];
                 json::grammar<char>::variant arg0 = argArray[0];
-                render_function(arg0, color_data_temp1, width, height);
+                render_function(arg0, color_data_temp1, width, height, false);
                 OneArgRenderFn renderFn = NULL;
                 if (t == "atan") {
                     renderFn = render_function_atan;
@@ -240,7 +238,7 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
                 WrappingFn wrappingFn = DoWrap<None>::doWrap;
                 objectIt = funcObj.find("m");
                 if (objectIt != funcObj.end()) {
-                    if (boost::any_cast<string>(*objectIt) == "c") {
+                    if (boost::any_cast<string>(*(objectIt->second)) == "c") {
                         wrappingFn = DoWrap<Clip>::doWrap;
                     } else {
                         wrappingFn = DoWrap<Wrap>::doWrap;
@@ -267,8 +265,8 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
                 color_data_temp2 = new double_color[width * height];
                 json::grammar<char>::variant arg0 = argArray[0];
                 json::grammar<char>::variant arg1 = argArray[1];
-                render_function(arg0, color_data_temp1, width, height);
-                render_function(arg1, color_data_temp2, width, height);
+                render_function(arg0, color_data_temp1, width, height, false);
+                render_function(arg1, color_data_temp2, width, height, false);
                 TwoArgRenderFn renderFn = NULL;
                 if (t == "add") {
                     renderFn = render_function_add;
@@ -286,7 +284,7 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
                 WrappingFn wrappingFn = DoWrap<None>::doWrap;
                 objectIt = funcObj.find("m");
                 if (objectIt != funcObj.end()) {
-                    if (boost::any_cast<string>(*objectIt) == "c") {
+                    if (boost::any_cast<string>(*(objectIt->second)) == "c") {
                         wrappingFn = DoWrap<Clip>::doWrap;
                     } else {
                         wrappingFn = DoWrap<Wrap>::doWrap;
@@ -318,9 +316,9 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
                 json::grammar<char>::variant arg0 = argArray[0];
                 json::grammar<char>::variant arg1 = argArray[1];
                 json::grammar<char>::variant arg2 = argArray[2];
-                render_function(arg0, color_data_temp1, width, height);
-                render_function(arg1, color_data_temp2, width, height);
-                render_function(arg2, color_data_temp3, width, height);
+                render_function(arg0, color_data_temp1, width, height, false);
+                render_function(arg1, color_data_temp2, width, height, false);
+                render_function(arg2, color_data_temp3, width, height, false);
 
                 // There are only two three-arg functions, and they're a bit
                 // complicated, so roll our own.
@@ -413,11 +411,21 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
         }
     }
 
-    // TODO - coerce here.
+    if (topLevel) {
+        // Coerce to [-1,1]
+        // FFV - do we need this?
+        double_color* tempPtr = output;
+        for (int yIt = 0; yIt < height; ++yIt) {
+            for (int xIt = 0; xIt < width; ++xIt) {
+                tempPtr->red = DoWrap<Clip>::doWrap(tempPtr->red);
+                tempPtr->green = DoWrap<Clip>::doWrap(tempPtr->green);
+                tempPtr->blue = DoWrap<Clip>::doWrap(tempPtr->blue);
+                ++tempPtr;
+            }
+        }
+    }
 
-    delete[] color_data_temp1;
-    delete[] color_data_temp2;
-    delete[] color_data_temp3;
+
 }
 
 // Adapted from code at
@@ -506,15 +514,20 @@ int main(int argc, char** argv) {
         //
         // Set up some fake data.
         double_color* double_data = new double_color[width*height];
-        /*for (int y = 0 ; y < height; ++y) {
-            for (int x = 0 ; x < width; ++x) {
-                color_data[y*width+x].red = y*2;
-                color_data[y*width+x].green = 0;
-                color_data[y*width+x].blue = 0;
+        png_color* color_data = new png_color[width*height];
+        render_function(funcJson, double_data, width, height, true);
+        // convert double_data to a png_color*
+        const double_color * tempDouble = double_data;
+        png_color * tempColor = color_data;
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                tempColor->red = static_cast<char>((tempDouble->red + 1.0) * (255.0/2.0));
+                tempColor->green = static_cast<char>((tempDouble->green + 1.0) * (255.0/2.0));
+                tempColor->blue = static_cast<char>((tempDouble->blue + 1.0) * (255.0/2.0));
+                ++tempDouble;
+                ++tempColor;
             }
-        }*/
-        render_function(funcJson, double_data, width, height);
-        // TODO - convert double_data to a png_color*
+        }
         delete[] double_data;
 
 
@@ -539,7 +552,7 @@ int main(int argc, char** argv) {
         png_set_rows(png_ptr, info_ptr, color_rows);
         png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
         delete[] color_rows;
-    } catch (char* err) {
+    } catch (char const* err) {
         cerr << "catching error " << err << endl;
         errorCode = 1;
     }

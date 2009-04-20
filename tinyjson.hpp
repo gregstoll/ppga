@@ -491,8 +491,8 @@ namespace json
 				m_string
 					= lexeme_d
 						[
-							( ch_p('"') >> *(
-								( (anychar_p - (ch_p('"') | ch_p('\\')))
+							( ch_p('\'') >> *(
+								( (anychar_p - (ch_p('\'') | ch_p('\\')))
 								| ch_p('\\') >>
 									( ch_p('\"')
 									| ch_p('\\')
@@ -504,7 +504,7 @@ namespace json
 									| ch_p('t')
 									| (ch_p('u') >> repeat_p(4)[ xdigit_p ])
 									)
-								)) >> ch_p('"') 
+								)) >> ch_p('\'') 
 							)
 							[ push_string(self.m_stack) ]
 						]
