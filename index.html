@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <META http-equiv="Content-Style-Type" content="text/css">
 <script type="text/javascript">
-    var pngScript='makepng.cgi';
+    var pngScript='writepngc.cgi';
 </script>
 <script src="jquery-1.1.3.1.pack.js" type="text/javascript"></script>
 <script src="json.js" type="text/javascript"></script>
@@ -94,11 +94,15 @@ JSON (using single quotes instead of double quotes, so they don't have to be URL
     <li><a href="json.js">json.js</a> - modified JSON parser (taken from <a href="http://www.json.org/json.js">here</a>) that accepts single quotes instead of double quotes.</li>
     <li><a href="jquery-1.1.3.1.pack.js">jquery-1.1.3.1.pack.js</a> - the <a href="http://jquery.com/">jQuery</a> Javascript library.</li>
     <li><a href="ppga.js">ppga.js</a> - generates random functions and breeds them together.</li>
+    <li><a href="writepng.cpp.txt">writepng.cpp</a> - writes the PNG files.  Uses <a href="http://blog.beef.de/projects/tinyjson/">TinyJSON</a> as a parser (modified to parse JSOn with single quotes) and <a href="http://www.libpng.org/pub/png/libpng.html">libpng</a> to write the PNG file.  The older python version is below; this version in C++ is much faster.</li>
+</ul>
+<p>Old source files:</p>
+<ul>
     <li><a href="jsonsinglequote.txt">jsonsinglequote.py</a> - modified version of <a href="http://cheeseshop.python.org/pypi/python-json">python-json</a> that accepts single quotes instead of double quotes.</li>
     <li><a href="pngcanvas.txt">pngcanvas.py</a> - Python library for writing PNG files taken from <a href="http://the.taoofmac.com/space/Projects/PNGCanvas">here</a>, modified to accept a function to draw.</li>
     <li><a href="makepng.txt">makepng.cgi</a> - Draws a PNG file given a function.</li>
 </ul>
-<p>I also am working on a version in Haskell; here are the source files:</p>
+<p>I was also working on a version in Haskell; here are the source files:</p>
 <ul>
     <li><a href="Png.hs.txt">Png.hs</a> - code to write (and hopefully read someday) PNG files - taken from <a href="http://haskell.org/haskellwiki/Library/PNG">here</a> and modified.</li>
     <li><a href="MakePng.hs.txt">MakePng.hs</a> - draws the PNG file given a function.</li>

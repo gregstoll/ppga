@@ -249,7 +249,6 @@ ppga.Class = {
         var img = document.getElementById(imgId);
         img.width = width;
         img.height = height;
-        //alert(Object.toJSONString(fn));
         var newSrc = this.makeCgiURL(width, height, fn);
         img.src = newSrc;
         //alert("done");
@@ -474,7 +473,6 @@ ppga.Class = {
     },
     randomFnTest: function() {
         var fn = this.makeRandomFn(0.0);
-        //alert(Object.toJSONString(fn));
         $('#fnDesc').empty();
         $('#fnDesc').append(Object.toJSONString(fn) + " " + Object.toJSONString(fn).length);
         this.setImage(fn, this.DEFAULT_IMAGE_SIZE, this.DEFAULT_IMAGE_SIZE, 'testImg');

@@ -135,6 +135,8 @@ struct DoWrap {
             if (val == 1) {
                 return 1;
             }
+            double quotient = val / 2.0;
+            val = val - quotient * 2.0;
             while (val < -1) {
                 val += 2.0;
             }
@@ -148,282 +150,322 @@ struct DoWrap {
 
 // FFV - we could optimize by only calculating r, g, or b depending on what
 // the higher functions need.
-void render_function(json::grammar<char>::variant funcJson, double_color* output, int width, int height, bool topLevel) {
-    double_color* color_data_temp1 = NULL;
-    double_color* color_data_temp2 = NULL;
-    double_color* color_data_temp3 = NULL;
+typedef enum colors_to_calculate_enum {
+    All,
+    Red,
+    Green,
+    Blue
+} colors_to_calculate;
+template <colors_to_calculate C>
+struct RenderClass {
+    static void render_function(json::grammar<char>::variant funcJson, double_color* output, int width, int height, bool topLevel) {
+        double_color* color_data_temp1 = NULL;
+        double_color* color_data_temp2 = NULL;
+        double_color* color_data_temp3 = NULL;
 
-    // This should always be true
-    if (funcJson->type() == typeid(json::grammar<char>::object)) {
-        json::grammar<char>::object const &funcObj = boost::any_cast< json::grammar<char>::object >(*funcJson);
-        // Get the type of the function.
-        json::grammar<char>::object::const_iterator objectIt = funcObj.find("t");
-        if (objectIt == funcObj.end()) {
-            throw "Function has no t member!";
-        }
-        string t = boost::any_cast< string >(*(objectIt->second));
-        // FFV - we could do some crazy map here or something, but come on.
-        // Or we could have a function for each type, once you evaluate its
-        // arguments.
-        // Do the zero-arg ones
-        if (t == "x" || t == "y" || t == "num") {
-            ZeroArgRenderFn renderFn = NULL;
-            if (t == "x") {
-                renderFn = render_function_x;
-            } else if (t == "y") {
-                renderFn = render_function_y;
-            } else if (t == "num") {
-                renderFn = render_function_num;
+        // This should always be true
+        if (funcJson->type() == typeid(json::grammar<char>::object)) {
+            json::grammar<char>::object const &funcObj = boost::any_cast< json::grammar<char>::object >(*funcJson);
+            // Get the type of the function.
+            json::grammar<char>::object::const_iterator objectIt = funcObj.find("t");
+            if (objectIt == funcObj.end()) {
+                throw "Function has no t member!";
             }
-            double aux = 0.0;
-            if (t == "num") {
-                objectIt = funcObj.find("val");
-                if (objectIt == funcObj.end()) {
-                    throw "Function num has no val member!";
+            string t = boost::any_cast< string >(*(objectIt->second));
+            // FFV - we could do some crazy map here or something, but come on.
+            // Or we could have a function for each type, once you evaluate its
+            // arguments.
+            // Do the zero-arg ones
+            if (t == "x" || t == "y" || t == "num") {
+                ZeroArgRenderFn renderFn = NULL;
+                if (t == "x") {
+                    renderFn = render_function_x;
+                } else if (t == "y") {
+                    renderFn = render_function_y;
+                } else if (t == "num") {
+                    renderFn = render_function_num;
                 }
-                aux = boost::any_cast<double>(*(objectIt->second));
+                double aux = 0.0;
+                if (t == "num") {
+                    objectIt = funcObj.find("val");
+                    if (objectIt == funcObj.end()) {
+                        throw "Function num has no val member!";
+                    }
+                    aux = boost::any_cast<double>(*(objectIt->second));
+                }
+                double deltaX = 2.0 / width;
+                double deltaY = 2.0 / height;
+                double x = -1.0;
+                double y = 1.0;
+                double_color* tempPtr = output;
+                for (int yIt = 0; yIt < height; ++yIt, y -= deltaY) {
+                    x = -1.0;
+                    for (int xIt = 0; xIt < width; ++xIt, x += deltaX) {
+                        // Here we might as well calculate everything, since it's fast.
+                        tempPtr->red = tempPtr->green = tempPtr->blue = renderFn(x, y, aux);
+                        ++tempPtr;
+                    }
+                }
+            } else {
+                // Get the argument function.
+                objectIt = funcObj.find("ch");
+                if (objectIt == funcObj.end()) {
+                    throw "arg function has no ch member!";
+                }
+                json::grammar<char>::array const &argArray = boost::any_cast< json::grammar<char>::array >(*(objectIt->second));
+     
+                if (t == "atan" || t == "abs" || t == "cos" || t == "exp" || t == "log" || t == "neg" || t == "rd" || t == "ru" || t == "sin") {
+                    // Do the one-arg ones.
+                    // First, we have to recur.
+                    color_data_temp1 = new double_color[width * height];
+                    json::grammar<char>::variant arg0 = argArray[0];
+                    RenderClass<C>::render_function(arg0, color_data_temp1, width, height, false);
+                    OneArgRenderFn renderFn = NULL;
+                    if (t == "atan") {
+                        renderFn = render_function_atan;
+                    } else if (t == "abs") {
+                        renderFn = render_function_abs;
+                    } else if (t == "cos") {
+                        renderFn = render_function_cos;
+                    } else if (t == "exp") {
+                        renderFn = render_function_exp;
+                    } else if (t == "log") {
+                        renderFn = render_function_log;
+                    } else if (t == "neg") {
+                        renderFn = render_function_neg;
+                    } else if (t == "rd") {
+                        renderFn = render_function_rd;
+                    } else if (t == "ru") {
+                        renderFn = render_function_ru;
+                    } else if (t == "sin") {
+                        renderFn = render_function_sin;
+                    }
+                    // Look at the mapping strategy, if present.
+                    // I thought this would make things faster, but now I
+                    // think I'm just fooling myself.
+                    WrappingFn wrappingFn = DoWrap<None>::doWrap;
+                    objectIt = funcObj.find("m");
+                    if (objectIt != funcObj.end()) {
+                        if (boost::any_cast<string>(*(objectIt->second)) == "c") {
+                            wrappingFn = DoWrap<Clip>::doWrap;
+                        } else {
+                            wrappingFn = DoWrap<Wrap>::doWrap;
+                        }
+                    }
+
+                    double_color* tempPtr = output;
+                    double_color* arg1Ptr = color_data_temp1;
+                    for (int yIt = 0; yIt < height; ++yIt) {
+                        for (int xIt = 0; xIt < width; ++xIt) {
+                            if (C == All || C == Red) {
+                                tempPtr->red = wrappingFn(renderFn(arg1Ptr->red));
+                            }
+                            if (C == All || C == Green) {
+                                tempPtr->green = wrappingFn(renderFn(arg1Ptr->green));
+                            }
+                            if (C == All || C == Blue) {
+                                tempPtr->blue = wrappingFn(renderFn(arg1Ptr->blue));
+                            }
+                            ++tempPtr;
+                            ++arg1Ptr;
+                        }
+                    }
+
+                    delete[] color_data_temp1;
+                } else if (t == "add" || t == "div" || t == "mul" || t == "sub") {
+                    // Do the two-arg ones.
+                    // First, we have to recur.
+                    color_data_temp1 = new double_color[width * height];
+                    color_data_temp2 = new double_color[width * height];
+                    json::grammar<char>::variant arg0 = argArray[0];
+                    json::grammar<char>::variant arg1 = argArray[1];
+                    RenderClass<C>::render_function(arg0, color_data_temp1, width, height, false);
+                    RenderClass<C>::render_function(arg1, color_data_temp2, width, height, false);
+                    TwoArgRenderFn renderFn = NULL;
+                    if (t == "add") {
+                        renderFn = render_function_add;
+                    } else if (t == "div") {
+                        renderFn = render_function_div;
+                    } else if (t == "mul") {
+                        renderFn = render_function_mul;
+                    } else if (t == "sub") {
+                        renderFn = render_function_sub;
+                    }
+
+                    // Look at the mapping strategy, if present.
+                    // I thought this would make things faster, but now I
+                    // think I'm just fooling myself.
+                    WrappingFn wrappingFn = DoWrap<None>::doWrap;
+                    objectIt = funcObj.find("m");
+                    if (objectIt != funcObj.end()) {
+                        if (boost::any_cast<string>(*(objectIt->second)) == "c") {
+                            wrappingFn = DoWrap<Clip>::doWrap;
+                        } else {
+                            wrappingFn = DoWrap<Wrap>::doWrap;
+                        }
+                    }
+
+                    double_color* tempPtr = output;
+                    double_color* arg1Ptr = color_data_temp1;
+                    double_color* arg2Ptr = color_data_temp2;
+                    for (int yIt = 0; yIt < height; ++yIt) {
+                        for (int xIt = 0; xIt < width; ++xIt) {
+                            if (C == All || C == Red) {
+                                tempPtr->red = wrappingFn(renderFn(arg1Ptr->red, arg2Ptr->red));
+                            }
+                            if (C == All || C == Green) {
+                                tempPtr->green = wrappingFn(renderFn(arg1Ptr->green, arg2Ptr->green));
+                            }
+                            if (C == All || C == Blue) {
+                                tempPtr->blue = wrappingFn(renderFn(arg1Ptr->blue, arg2Ptr->blue));
+                            }
+                            ++tempPtr;
+                            ++arg1Ptr;
+                            ++arg2Ptr;
+                        }
+                    }
+
+                    delete[] color_data_temp1;
+                    delete[] color_data_temp2;
+                } else if (t == "ccrgb" || t == "cchsl") {
+                    // Do the three-arg ones.
+                    // First, we have to recur.
+                    color_data_temp1 = new double_color[width * height];
+                    color_data_temp2 = new double_color[width * height];
+                    color_data_temp3 = new double_color[width * height];
+                    json::grammar<char>::variant arg0 = argArray[0];
+                    json::grammar<char>::variant arg1 = argArray[1];
+                    json::grammar<char>::variant arg2 = argArray[2];
+
+                    // There are only two three-arg functions, and they're a bit
+                    // complicated, so roll our own.
+                    if (t == "ccrgb") {
+                        // Here we only need the specific colors.
+                        RenderClass<Red>::render_function(arg0, color_data_temp1, width, height, false);
+                        RenderClass<Green>::render_function(arg1, color_data_temp2, width, height, false);
+                        RenderClass<Blue>::render_function(arg2, color_data_temp3, width, height, false);
+                        double_color* tempPtr = output;
+                        double_color* arg1Ptr = color_data_temp1;
+                        double_color* arg2Ptr = color_data_temp2;
+                        double_color* arg3Ptr = color_data_temp3;
+                        for (int yIt = 0; yIt < height; ++yIt) {
+                            for (int xIt = 0; xIt < width; ++xIt) {
+                                if (C == All || C == Red) {
+                                    tempPtr->red = arg1Ptr->red;
+                                }
+                                if (C == All || C == Green) {
+                                    tempPtr->green = arg2Ptr->green;
+                                }
+                                if (C == All || C == Blue) {
+                                    tempPtr->blue = arg3Ptr->blue;
+                                }
+                                ++tempPtr;
+                                ++arg1Ptr;
+                                ++arg2Ptr;
+                                ++arg3Ptr;
+                            }
+                        }
+                    } else if (t == "cchsl") {
+                        double_color* tempPtr = output;
+                        double_color* arg1Ptr = color_data_temp1;
+                        double_color* arg2Ptr = color_data_temp2;
+                        double_color* arg3Ptr = color_data_temp3;
+                        // Here we definitely need all of them, since they
+                        // could all affect the result.
+                        RenderClass<All>::render_function(arg0, color_data_temp1, width, height, false);
+                        RenderClass<All>::render_function(arg1, color_data_temp2, width, height, false);
+                        RenderClass<All>::render_function(arg2, color_data_temp3, width, height, false);
+                        for (int yIt = 0; yIt < height; ++yIt) {
+                            for (int xIt = 0; xIt < width; ++xIt) {
+                                // take h, s, l as grayscale
+                                double hOrig = .3 * arg1Ptr->red + .59 * arg1Ptr->green + .11 * arg1Ptr->blue;
+                                double sOrig = .3 * arg2Ptr->red + .59 * arg2Ptr->green + .11 * arg2Ptr->blue;
+                                double lOrig = .3 * arg3Ptr->red + .59 * arg3Ptr->green + .11 * arg3Ptr->blue;
+                                // Scale h, s and l to be 0 to 1
+                                double h = (hOrig + 1.0) / 2.0;
+                                double s = (sOrig + 1.0) / 2.0;
+                                double l = (lOrig + 1.0) / 2.0;
+                                if (s == 0.0) {
+                                    tempPtr->red = l * 2.0 - 1;
+                                    tempPtr->green = l * 2.0 - 1;
+                                    tempPtr->blue = l * 2.0 - 1; 
+                                } else {
+                                    double q;
+                                    if (l < .5) {
+                                        q = l * (1.0 + s);
+                                    } else {
+                                        q = l + s - (l * s);
+                                    }
+                                    double p = 2.0 * l - q;
+                                    double tr = h + 1.0/3.0;
+                                    double tg = h;
+                                    double tb = h - 1.0/3.0;
+                                    if (tr < 0) {
+                                        tr += 1;
+                                    } else if (tr > 1) {
+                                        tr -= 1;
+                                    }
+                                    if (tg < 0) {
+                                        tg += 1;
+                                    } else if (tg > 1) {
+                                        tg -= 1;
+                                    }
+                                    if (tb < 0) {
+                                        tb += 1;
+                                    } else if (tb > 1) {
+                                        tb -= 1;
+                                    }
+                                    double cr = finalHslToRgb(tr, q, p);
+                                    double cg = finalHslToRgb(tg, q, p);
+                                    double cb = finalHslToRgb(tb, q, p);
+                                    if (C == All || C == Red) {
+                                        tempPtr->red = cr * 2.0 - 1.0;
+                                    }
+                                    if (C == All || C == Green) {
+                                        tempPtr->green = cg * 2.0 - 1.0;
+                                    }
+                                    if (C == All || C == Blue) {
+                                        tempPtr->blue = cb * 2.0 - 1.0;
+                                    }
+                                }
+
+                                ++tempPtr;
+                                ++arg1Ptr;
+                                ++arg2Ptr;
+                                ++arg3Ptr;
+                            }
+                        }
+                    }
+
+
+                    delete[] color_data_temp1;
+                    delete[] color_data_temp2;
+                    delete[] color_data_temp3;
+                } else {
+                    throw "Unknown function";
+                }
+
+
             }
-            double deltaX = 2.0 / width;
-            double deltaY = 2.0 / height;
-            double x = -1.0;
-            double y = 1.0;
+        }
+
+        if (topLevel) {
+            // Coerce to [-1,1]
+            // FFV - do we need this?
             double_color* tempPtr = output;
-            for (int yIt = 0; yIt < height; ++yIt, y -= deltaY) {
-                x = -1.0;
-                for (int xIt = 0; xIt < width; ++xIt, x += deltaX) {
-                    tempPtr->red = tempPtr->green = tempPtr->blue = renderFn(x, y, aux);
+            for (int yIt = 0; yIt < height; ++yIt) {
+                for (int xIt = 0; xIt < width; ++xIt) {
+                    tempPtr->red = DoWrap<Clip>::doWrap(tempPtr->red);
+                    tempPtr->green = DoWrap<Clip>::doWrap(tempPtr->green);
+                    tempPtr->blue = DoWrap<Clip>::doWrap(tempPtr->blue);
                     ++tempPtr;
                 }
             }
-        } else {
-            // Get the argument function.
-            objectIt = funcObj.find("ch");
-            if (objectIt == funcObj.end()) {
-                throw "arg function has no ch member!";
-            }
-            json::grammar<char>::array const &argArray = boost::any_cast< json::grammar<char>::array >(*(objectIt->second));
- 
-            if (t == "atan" || t == "abs" || t == "cos" || t == "exp" || t == "log" || t == "neg" || t == "rd" || t == "ru" || t == "sin") {
-                // Do the one-arg ones.
-                // First, we have to recur.
-                color_data_temp1 = new double_color[width * height];
-                json::grammar<char>::variant arg0 = argArray[0];
-                render_function(arg0, color_data_temp1, width, height, false);
-                OneArgRenderFn renderFn = NULL;
-                if (t == "atan") {
-                    renderFn = render_function_atan;
-                } else if (t == "abs") {
-                    renderFn = render_function_abs;
-                } else if (t == "cos") {
-                    renderFn = render_function_cos;
-                } else if (t == "exp") {
-                    renderFn = render_function_exp;
-                } else if (t == "log") {
-                    renderFn = render_function_log;
-                } else if (t == "neg") {
-                    renderFn = render_function_neg;
-                } else if (t == "rd") {
-                    renderFn = render_function_rd;
-                } else if (t == "ru") {
-                    renderFn = render_function_ru;
-                } else if (t == "sin") {
-                    renderFn = render_function_sin;
-                }
-                // Look at the mapping strategy, if present.
-                // I thought this would make things faster, but now I
-                // think I'm just fooling myself.
-                WrappingFn wrappingFn = DoWrap<None>::doWrap;
-                objectIt = funcObj.find("m");
-                if (objectIt != funcObj.end()) {
-                    if (boost::any_cast<string>(*(objectIt->second)) == "c") {
-                        wrappingFn = DoWrap<Clip>::doWrap;
-                    } else {
-                        wrappingFn = DoWrap<Wrap>::doWrap;
-                    }
-                }
-
-                double_color* tempPtr = output;
-                double_color* arg1Ptr = color_data_temp1;
-                for (int yIt = 0; yIt < height; ++yIt) {
-                    for (int xIt = 0; xIt < width; ++xIt) {
-                        tempPtr->red = wrappingFn(renderFn(arg1Ptr->red));
-                        tempPtr->green = wrappingFn(renderFn(arg1Ptr->green));
-                        tempPtr->blue = wrappingFn(renderFn(arg1Ptr->blue));
-                        ++tempPtr;
-                        ++arg1Ptr;
-                    }
-                }
-
-                delete[] color_data_temp1;
-            } else if (t == "add" || t == "div" || t == "mul" || t == "sub") {
-                // Do the two-arg ones.
-                // First, we have to recur.
-                color_data_temp1 = new double_color[width * height];
-                color_data_temp2 = new double_color[width * height];
-                json::grammar<char>::variant arg0 = argArray[0];
-                json::grammar<char>::variant arg1 = argArray[1];
-                render_function(arg0, color_data_temp1, width, height, false);
-                render_function(arg1, color_data_temp2, width, height, false);
-                TwoArgRenderFn renderFn = NULL;
-                if (t == "add") {
-                    renderFn = render_function_add;
-                } else if (t == "div") {
-                    renderFn = render_function_div;
-                } else if (t == "mul") {
-                    renderFn = render_function_mul;
-                } else if (t == "sub") {
-                    renderFn = render_function_sub;
-                }
-
-                // Look at the mapping strategy, if present.
-                // I thought this would make things faster, but now I
-                // think I'm just fooling myself.
-                WrappingFn wrappingFn = DoWrap<None>::doWrap;
-                objectIt = funcObj.find("m");
-                if (objectIt != funcObj.end()) {
-                    if (boost::any_cast<string>(*(objectIt->second)) == "c") {
-                        wrappingFn = DoWrap<Clip>::doWrap;
-                    } else {
-                        wrappingFn = DoWrap<Wrap>::doWrap;
-                    }
-                }
-
-                double_color* tempPtr = output;
-                double_color* arg1Ptr = color_data_temp1;
-                double_color* arg2Ptr = color_data_temp2;
-                for (int yIt = 0; yIt < height; ++yIt) {
-                    for (int xIt = 0; xIt < width; ++xIt) {
-                        tempPtr->red = wrappingFn(renderFn(arg1Ptr->red, arg2Ptr->red));
-                        tempPtr->green = wrappingFn(renderFn(arg1Ptr->green, arg2Ptr->green));
-                        tempPtr->blue = wrappingFn(renderFn(arg1Ptr->blue, arg2Ptr->blue));
-                        ++tempPtr;
-                        ++arg1Ptr;
-                        ++arg2Ptr;
-                    }
-                }
-
-                delete[] color_data_temp1;
-                delete[] color_data_temp2;
-            } else if (t == "ccrgb" || t == "cchsl") {
-                // Do the three-arg ones.
-                // First, we have to recur.
-                color_data_temp1 = new double_color[width * height];
-                color_data_temp2 = new double_color[width * height];
-                color_data_temp3 = new double_color[width * height];
-                json::grammar<char>::variant arg0 = argArray[0];
-                json::grammar<char>::variant arg1 = argArray[1];
-                json::grammar<char>::variant arg2 = argArray[2];
-                render_function(arg0, color_data_temp1, width, height, false);
-                render_function(arg1, color_data_temp2, width, height, false);
-                render_function(arg2, color_data_temp3, width, height, false);
-
-                // There are only two three-arg functions, and they're a bit
-                // complicated, so roll our own.
-                if (t == "ccrgb") {
-                    double_color* tempPtr = output;
-                    double_color* arg1Ptr = color_data_temp1;
-                    double_color* arg2Ptr = color_data_temp2;
-                    double_color* arg3Ptr = color_data_temp3;
-                    for (int yIt = 0; yIt < height; ++yIt) {
-                        for (int xIt = 0; xIt < width; ++xIt) {
-                            tempPtr->red = arg1Ptr->red;
-                            tempPtr->green = arg2Ptr->green;
-                            tempPtr->blue = arg3Ptr->blue;
-                            ++tempPtr;
-                            ++arg1Ptr;
-                            ++arg2Ptr;
-                            ++arg3Ptr;
-                        }
-                    }
-                } else if (t == "cchsl") {
-                    double_color* tempPtr = output;
-                    double_color* arg1Ptr = color_data_temp1;
-                    double_color* arg2Ptr = color_data_temp2;
-                    double_color* arg3Ptr = color_data_temp3;
-                    for (int yIt = 0; yIt < height; ++yIt) {
-                        for (int xIt = 0; xIt < width; ++xIt) {
-                            // take h, s, l as grayscale
-                            double hOrig = .3 * arg1Ptr->red + .59 * arg1Ptr->green + .11 * arg1Ptr->blue;
-                            double sOrig = .3 * arg2Ptr->red + .59 * arg2Ptr->green + .11 * arg2Ptr->blue;
-                            double lOrig = .3 * arg3Ptr->red + .59 * arg3Ptr->green + .11 * arg3Ptr->blue;
-                            // Scale h, s and l to be 0 to 1
-                            double h = (hOrig + 1.0) / 2.0;
-                            double s = (sOrig + 1.0) / 2.0;
-                            double l = (lOrig + 1.0) / 2.0;
-                            if (s == 0.0) {
-                                tempPtr->red = l * 2.0 - 1;
-                                tempPtr->green = l * 2.0 - 1;
-                                tempPtr->blue = l * 2.0 - 1; 
-                            } else {
-                                double q;
-                                if (l < .5) {
-                                    q = l * (1.0 + s);
-                                } else {
-                                    q = l + s - (l * s);
-                                }
-                                double p = 2.0 * l - q;
-                                double tr = h + 1.0/3.0;
-                                double tg = h;
-                                double tb = h - 1.0/3.0;
-                                if (tr < 0) {
-                                    tr += 1;
-                                } else if (tr > 1) {
-                                    tr -= 1;
-                                }
-                                if (tg < 0) {
-                                    tg += 1;
-                                } else if (tg > 1) {
-                                    tg -= 1;
-                                }
-                                if (tb < 0) {
-                                    tb += 1;
-                                } else if (tb > 1) {
-                                    tb -= 1;
-                                }
-                                double cr = finalHslToRgb(tr, q, p);
-                                double cg = finalHslToRgb(tg, q, p);
-                                double cb = finalHslToRgb(tb, q, p);
-                                tempPtr->red = cr * 2.0 - 1.0;
-                                tempPtr->green = cg * 2.0 - 1.0;
-                                tempPtr->blue = cb * 2.0 - 1.0;
-                            }
-
-                            ++tempPtr;
-                            ++arg1Ptr;
-                            ++arg2Ptr;
-                            ++arg3Ptr;
-                        }
-                    }
-                }
-
-
-                delete[] color_data_temp1;
-                delete[] color_data_temp2;
-                delete[] color_data_temp3;
-            } else {
-                throw "Unknown function";
-            }
-
-
         }
+
+
     }
-
-    if (topLevel) {
-        // Coerce to [-1,1]
-        // FFV - do we need this?
-        double_color* tempPtr = output;
-        for (int yIt = 0; yIt < height; ++yIt) {
-            for (int xIt = 0; xIt < width; ++xIt) {
-                tempPtr->red = DoWrap<Clip>::doWrap(tempPtr->red);
-                tempPtr->green = DoWrap<Clip>::doWrap(tempPtr->green);
-                tempPtr->blue = DoWrap<Clip>::doWrap(tempPtr->blue);
-                ++tempPtr;
-            }
-        }
-    }
-
-
-}
+};
 
 // Adapted from code at
 //  http://www.purplepixie.org/cgi/download/cgi_interface.cpp
@@ -512,7 +554,7 @@ int main(int argc, char** argv) {
         // Set up some fake data.
         double_color* double_data = new double_color[width*height];
         png_color* color_data = new png_color[width*height];
-        render_function(funcJson, double_data, width, height, true);
+        RenderClass<All>::render_function(funcJson, double_data, width, height, true);
         // convert double_data to a png_color*
         const double_color * tempDouble = double_data;
         png_color * tempColor = color_data;

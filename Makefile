@@ -13,4 +13,4 @@ PngTest: Png.hs PngTest.hs
 	ghc -O -fglasgow-exts -fth --make -o PngTest PngTest.hs
 
 writepng: writepng.cpp tinyjson.hpp
-	g++ -g -Wall -o writepng -lpng writepng.cpp
+	g++ -O -Wall -o writepng -lpng writepng.cpp
