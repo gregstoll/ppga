@@ -135,6 +135,8 @@ struct DoWrap {
             if (val == 1) {
                 return 1;
             }
+            // Technically, we can lose precision here if your result is
+            // very large (by dividing, say, 1 by 1E-15).  But, seriously.
             double quotient = val / 2.0;
             val = val - quotient * 2.0;
             while (val < -1) {
@@ -148,7 +150,7 @@ struct DoWrap {
     }
 };
 
-// FFV - we could optimize by only calculating r, g, or b depending on what
+// Here we optimize by only calculating r, g, or b depending on what
 // the higher functions need.
 typedef enum colors_to_calculate_enum {
     All,
