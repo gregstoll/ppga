@@ -319,6 +319,10 @@ ppga.Class = {
         var fn = {};
         // strip spaces from the front
         str = str.strip();
+        if (str.charAt(0) != 'x' && str.charAt(0) != 'y' && str.charAt(0) != '(') {
+            str = str.slice(1);
+            str = str.strip();
+        }
         var gotParen = false;
         if (str.charAt(0) == '(') {
             gotParen = true;

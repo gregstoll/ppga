@@ -137,8 +137,12 @@ struct DoWrap {
             }
             // Technically, we can lose precision here if your result is
             // very large (by dividing, say, 1 by 1E-15).  But, seriously.
-            double quotient = val / 2.0;
+            long long quotient = val / 2.0;
             val = val - quotient * 2.0;
+            if (val < -1 || val > 1) {
+                // Well, val overflows a long long, so just give it a value.
+                val = 0;
+            }
             while (val < -1) {
                 val += 2.0;
             }
