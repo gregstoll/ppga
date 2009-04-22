@@ -27,7 +27,7 @@ void writepng_version_info()
 void user_write_data(png_structp png_ptr, png_bytep data, png_size_t length) {
     size_t oldSize = pngOutput.size();
     pngOutput.resize(oldSize + length);
-    // TODO - isn't there a better way to do this?
+    // FFV - isn't there a better way to do this?
     memcpy(&pngOutput[0] + oldSize, data, length);
 }
 
@@ -135,20 +135,16 @@ struct DoWrap {
             if (val == 1) {
                 return 1;
             }
-            return fmod(val + 1, 2) - 1;;
+            while (val < -1) {
+                val += 2.0;
+            }
+            while (val > 1) {
+                val -= 2.0;
+            }
+            return fmod(val + 1, 2) - 1;
         }
     }
 };
-/*template <>
-class DoWrap<Clip> {
-    static double doWrap(double val) { 
-   }
-};
-template <>
-class DoWrap<Wrap> {
-    static double doWrap(double val) { 
-   }
-};*/
 
 // FFV - we could optimize by only calculating r, g, or b depending on what
 // the higher functions need.
@@ -185,7 +181,7 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
                 if (objectIt == funcObj.end()) {
                     throw "Function num has no val member!";
                 }
-                aux = boost::any_cast<double>(*objectIt);
+                aux = boost::any_cast<double>(*(objectIt->second));
             }
             double deltaX = 2.0 / width;
             double deltaY = 2.0 / height;
@@ -193,6 +189,7 @@ void render_function(json::grammar<char>::variant funcJson, double_color* output
             double y = 1.0;
             double_color* tempPtr = output;
             for (int yIt = 0; yIt < height; ++yIt, y -= deltaY) {
+                x = -1.0;
                 for (int xIt = 0; xIt < width; ++xIt, x += deltaX) {
                     tempPtr->red = tempPtr->green = tempPtr->blue = renderFn(x, y, aux);
                     ++tempPtr;
@@ -521,9 +518,9 @@ int main(int argc, char** argv) {
         png_color * tempColor = color_data;
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                tempColor->red = static_cast<char>((tempDouble->red + 1.0) * (255.0/2.0));
-                tempColor->green = static_cast<char>((tempDouble->green + 1.0) * (255.0/2.0));
-                tempColor->blue = static_cast<char>((tempDouble->blue + 1.0) * (255.0/2.0));
+                tempColor->red = static_cast<unsigned char>(((tempDouble->red + 1.0) * (255.0/2.0)));
+                tempColor->green = static_cast<unsigned char>(((tempDouble->green + 1.0) * (255.0/2.0)));
+                tempColor->blue = static_cast<unsigned char>(((tempDouble->blue + 1.0) * (255.0/2.0)));
                 ++tempDouble;
                 ++tempColor;
             }
@@ -547,7 +544,7 @@ int main(int argc, char** argv) {
         // Now set up the row pointers.
         png_byte** color_rows = new png_byte*[height];
         for (int i = 0; i < height; ++i) {
-            color_rows[i] = reinterpret_cast<png_byte*>(&color_data[width * i]);
+            color_rows[i] = reinterpret_cast<png_byte*>(&(color_data[width * i]));
         }
         png_set_rows(png_ptr, info_ptr, color_rows);
         png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
