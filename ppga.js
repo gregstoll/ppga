@@ -41,6 +41,8 @@ ppga.Class = {
        {'type': 'div', 'children': 2, 'needsMap': true},
        {'type': 'mul', 'children': 2, 'needsMap': true},
        {'type': 'sub', 'children': 2, 'needsMap': true},
+       {'type': 'bwperlin', 'children': 2, 'aux': 'seed'},
+       {'type': 'colorperlin', 'children': 2, 'aux': ['seed1', 'seed2', 'seed3']},
        {'type': 'ccrgb', 'children': 3},
        {'type': 'cchsl', 'children': 3}],
     // http://javascript.crockford.com/memory/leak.html
@@ -218,7 +220,7 @@ ppga.Class = {
         } else {
             var funcIndex;
             if (ensureTopHaveColor) {
-                funcIndex = Math.floor(16 + Math.random() * 2);
+                funcIndex = Math.floor(17 + Math.random() * 3);
             } else {
                 funcIndex = Math.floor(Math.random() * this.fnInfo.length);
             }
@@ -229,7 +231,21 @@ ppga.Class = {
             this.makeRandomMapping(toReturn);                
         }
         if ('aux' in curInfo) {
-            toReturn[curInfo['aux']] = Math.random();
+            if (typeof(curInfo['aux']) == 'object') {
+                for (var i = 0; i < curInfo['aux'].length; ++i) {
+                    toReturn[curInfo['aux'][i]] = Math.random();
+                }
+            } else {
+                toReturn[curInfo['aux']] = Math.random();
+            }
+        }
+        if (curInfo['type'] == 'bwperlin') {
+            toReturn['seed'] = Math.floor(toReturn['seed'] * 2147483647);
+        }
+        if (curInfo['type'] == 'colorperlin') {
+            toReturn['seed1'] = Math.floor(toReturn['seed1'] * 2147483647);
+            toReturn['seed2'] = Math.floor(toReturn['seed2'] * 2147483647);
+            toReturn['seed3'] = Math.floor(toReturn['seed3'] * 2147483647);
         }
         if (curInfo['children'] > 0) {
             toReturn['ch'] = [];
@@ -351,6 +367,33 @@ ppga.Class = {
         // see how many children to expect and parse them.
         var typeInfo = this.getFnInfo(type);
         var numChildren = typeInfo['children'];
+        if (type == 'bwperlin') {
+            // Parse the seed.
+            rest = rest.strip();
+            var spaceIndex = rest.indexOf(' ');
+            var intStr = rest.substring(0, spaceIndex);
+            rest = rest.substring(spaceIndex);
+            fn['seed'] = parseInt(intStr);
+        } else if (type == 'colorperlin') {
+            // Parse the seeds.
+            rest = rest.strip();
+            var spaceIndex = rest.indexOf(' ');
+            var intStr = rest.substring(0, spaceIndex);
+            rest = rest.substring(spaceIndex);
+            fn['seed1'] = parseInt(intStr);
+
+            rest = rest.strip();
+            var spaceIndex = rest.indexOf(' ');
+            var intStr = rest.substring(0, spaceIndex);
+            rest = rest.substring(spaceIndex);
+            fn['seed2'] = parseInt(intStr);
+
+            rest = rest.strip();
+            var spaceIndex = rest.indexOf(' ');
+            var intStr = rest.substring(0, spaceIndex);
+            rest = rest.substring(spaceIndex);
+            fn['seed3'] = parseInt(intStr);
+        }
         if (numChildren > 0) {
             fn['ch'] = [];
             for (var i = 0; i < numChildren; ++i) {
@@ -396,6 +439,18 @@ ppga.Class = {
         var numChildren = 0;
         if ('ch' in fn) {
             numChildren = fn['ch'].length;
+        }
+        if ('seed' in fn) {
+            str += (' ' + fn['seed']);
+        }
+        if ('seed1' in fn) {
+            str += (' ' + fn['seed1']);
+        }
+        if ('seed2' in fn) {
+            str += (' ' + fn['seed2']);
+        }
+        if ('seed3' in fn) {
+            str += (' ' + fn['seed3']);
         }
         if (numChildren > 0) {
             str += ' ';

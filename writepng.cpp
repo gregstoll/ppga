@@ -35,6 +35,56 @@ void user_flush_data(png_structp png_ptr) {
     // Nothing to do.
 }
 
+struct bwperlin_data {
+    const static int B = 0x100;
+    const static int BM = 0xff;
+    const static int N = 0x1000;
+    const static int NP = 0x12;
+    const static int NM = 0xfff;
+    int *p;
+    double *g2;
+
+    bwperlin_data() : p(NULL), g2(NULL) {
+    }
+
+    double nextRand(int max) {
+        return (int)floor(((double)rand())/(((double)RAND_MAX)/((double)max)));
+    }
+
+    void init(int seed) {
+        p = new int[B + B + 2];
+        g2 = new double[(B + B + 2)*2];
+        srand(seed);
+        for (int i = 0; i < B; ++i) {
+            p[i] = i;
+            for (int j = 0; j < 2; ++j) {
+                g2[i*2+j] = (nextRand(B+B)-B)/((double)B);
+            }
+            // Normalize these (so that the sum of their squares is 1)
+            double s = (double) sqrt(g2[2*i] * g2[2*i] + g2[2*i+1] * g2[2*i+1]);
+            g2[i*2] /= s;
+            g2[i*2+1] /= s;
+        }
+        // Shuffle the elements of g2.
+        for (int i = B-1; i >= 0; --i) {
+            int k = p[i];
+            int j = floor(nextRand(B));
+            p[i] = p[j];
+            p[j] = k;
+        }
+        // Make p, g2 be "periodic"
+        for (int i = 0; i < B+2; ++i) {
+            p[B + i] = p[i];
+            g2[2*(B + i)] = g2[2*i];
+            g2[2*(B + i)+1] = g2[2*i+1];
+        }
+    }
+
+    ~bwperlin_data() {
+        delete[] p;
+        delete[] g2;
+    }
+};
 
 double render_function_x(double x, double y, double aux) {
     return x;
@@ -78,27 +128,67 @@ double render_function_sin(double arg1) {
     return ceil(arg1);
 }
 
-double render_function_add(double arg1, double arg2) {
+double render_function_add(double arg1, double arg2, const bwperlin_data& aux) {
     return arg1 + arg2;
 }
-double render_function_div(double arg1, double arg2) {
+double render_function_div(double arg1, double arg2, const bwperlin_data& aux) {
     if (arg2 == 0) {
         return 0;
     } else {
         return arg1 / arg2;
     }
 }
-double render_function_mul(double arg1, double arg2) {
+double render_function_mul(double arg1, double arg2, const bwperlin_data& aux) {
     return arg1 * arg2;
 }
-double render_function_sub(double arg1, double arg2) {
+double render_function_sub(double arg1, double arg2, const bwperlin_data& aux) {
     return arg1 - arg2;
+}
+double render_function_bwperlin(double arg1, double arg2, const bwperlin_data& aux) {
+    /* coherent noise function over 1, 2 or 3 dimensions */
+    /* (copyright Ken Perlin) */
+    /* Doing variables at beginning for ease of porting. */
+    int bx0, bx1, by0, by1, b00, b10, b01, b11;
+    double rx0, rx1, ry0, ry1, sx, sy, a, b, t, u, v;
+
+    // setup(0, bx0, bx1, rx0, rx1);
+    t = arg1 + bwperlin_data::N;
+    bx0 = ((int)t) & bwperlin_data::BM;
+    bx1 = (bx0+1) & bwperlin_data::BM;
+    rx0 = t - (int) t;
+    rx1 = rx0 - 1;
+
+    //setup(1, by0, by1, ry0, ry1);
+    t = arg2 + bwperlin_data::N;
+    by0 = ((int)t) & bwperlin_data::BM;
+    by1 = (by0+1) & bwperlin_data::BM;
+    ry0 = t - (int) t;
+    ry1 = ry0 - 1;
+
+    int i = aux.p[bx0];
+    int j = aux.p[bx1];
+    b00 = aux.p[i + by0];
+    b10 = aux.p[j + by0];
+    b01 = aux.p[i + by1];
+    b11 = aux.p[j + by1];
+    sx = rx0 * rx0 * ((double) 3.0 - ((double)2.0) * rx0);
+    sy = ry0 * ry0 * ((double) 3.0 - ((double)2.0) * ry0);
+
+    u = rx0 * aux.g2[2*b00] + ry0 * aux.g2[2*b00 + 1];
+    v = rx1 * aux.g2[2*b10] + ry0 * aux.g2[2*b10 + 1];
+    a = u + sx * (v - u);
+
+    u = rx0 * aux.g2[2*b01] + ry1 * aux.g2[2*b01 + 1];
+    v = rx1 * aux.g2[2*b11] + ry1 * aux.g2[2*b11 + 1];
+    b = u + sx * (v - u);
+
+    return (a + sy * (b - a));
 }
 
 
 typedef double (*ZeroArgRenderFn)(double x, double y, double aux);
 typedef double (*OneArgRenderFn)(double arg1);
-typedef double (*TwoArgRenderFn)(double arg1, double arg2);
+typedef double (*TwoArgRenderFn)(double arg1, double arg2, const bwperlin_data& aux);
 
 inline double finalHslToRgb(double tc, double q, double p) {
     if (tc < 1.0/6.0) {
@@ -278,7 +368,7 @@ struct RenderClass {
                     }
 
                     delete[] color_data_temp1;
-                } else if (t == "add" || t == "div" || t == "mul" || t == "sub") {
+                } else if (t == "add" || t == "div" || t == "mul" || t == "sub" || t == "bwperlin" || t == "colorperlin") {
                     // Do the two-arg ones.
                     // First, we have to recur.
                     color_data_temp1 = new double_color[width * height];
@@ -288,6 +378,9 @@ struct RenderClass {
                     RenderClass<C>::render_function(arg0, color_data_temp1, width, height, false);
                     RenderClass<C>::render_function(arg1, color_data_temp2, width, height, false);
                     TwoArgRenderFn renderFn = NULL;
+                    bwperlin_data bwperlindata1;
+                    bwperlin_data bwperlindata2;
+                    bwperlin_data bwperlindata3;
                     if (t == "add") {
                         renderFn = render_function_add;
                     } else if (t == "div") {
@@ -296,6 +389,37 @@ struct RenderClass {
                         renderFn = render_function_mul;
                     } else if (t == "sub") {
                         renderFn = render_function_sub;
+                    } else if (t == "bwperlin") {
+                        renderFn = render_function_bwperlin;
+                        objectIt = funcObj.find("seed");
+                        if (objectIt == funcObj.end()) {
+                            throw "Function bwperlin has no seed member!";
+                        }
+                        int seed = boost::any_cast<int>(*(objectIt->second));
+                        // This is a little inefficient, but meh.
+                        bwperlindata1.init(seed);
+                        bwperlindata2.init(seed);
+                        bwperlindata3.init(seed);
+                    } else if (t == "colorperlin") {
+                        renderFn = render_function_bwperlin;
+                        objectIt = funcObj.find("seed1");
+                        if (objectIt == funcObj.end()) {
+                            throw "Function bwperlin has no seed1 member!";
+                        }
+                        int seed1 = boost::any_cast<int>(*(objectIt->second));
+                        bwperlindata1.init(seed1);
+                        objectIt = funcObj.find("seed2");
+                        if (objectIt == funcObj.end()) {
+                            throw "Function bwperlin has no seed2 member!";
+                        }
+                        int seed2 = boost::any_cast<int>(*(objectIt->second));
+                        bwperlindata2.init(seed2);
+                        objectIt = funcObj.find("seed3");
+                        if (objectIt == funcObj.end()) {
+                            throw "Function bwperlin has no seed3 member!";
+                        }
+                        int seed3 = boost::any_cast<int>(*(objectIt->second));
+                        bwperlindata3.init(seed3);
                     }
 
                     // Look at the mapping strategy, if present.
@@ -317,13 +441,13 @@ struct RenderClass {
                     for (int yIt = 0; yIt < height; ++yIt) {
                         for (int xIt = 0; xIt < width; ++xIt) {
                             if (C == All || C == Red) {
-                                tempPtr->red = wrappingFn(renderFn(arg1Ptr->red, arg2Ptr->red));
+                                tempPtr->red = wrappingFn(renderFn(arg1Ptr->red, arg2Ptr->red, bwperlindata1));
                             }
                             if (C == All || C == Green) {
-                                tempPtr->green = wrappingFn(renderFn(arg1Ptr->green, arg2Ptr->green));
+                                tempPtr->green = wrappingFn(renderFn(arg1Ptr->green, arg2Ptr->green, bwperlindata2));
                             }
                             if (C == All || C == Blue) {
-                                tempPtr->blue = wrappingFn(renderFn(arg1Ptr->blue, arg2Ptr->blue));
+                                tempPtr->blue = wrappingFn(renderFn(arg1Ptr->blue, arg2Ptr->blue, bwperlindata3));
                             }
                             ++tempPtr;
                             ++arg1Ptr;
