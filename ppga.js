@@ -213,13 +213,22 @@ ppga.Class = {
         this.nextGenStep(fns, 1); 
     },
 
-    makeRandomFn: function (randomProb, ensureTopHaveColor) {
+    makeRandomFn: function (randomProb, topColorMode) {
         if (Math.random() < randomProb) {
             // select zero node
             var funcIndex = Math.floor(Math.random() * this.NUM_ZERO_NODES);
         } else {
             var funcIndex;
-            if (ensureTopHaveColor) {
+            if (topColorMode == "1") {
+                // Prefer color
+                // 17-19 are color, others are not.
+                if (Math.random() < .4) {
+                    funcIndex = Math.floor(17 + Math.random() * 3);
+                } else {
+                    funcIndex = Math.floor(Math.random() * this.fnInfo.length);
+                }
+            } else if (topColorMode == "2") {
+                // Always color
                 funcIndex = Math.floor(17 + Math.random() * 3);
             } else {
                 funcIndex = Math.floor(Math.random() * this.fnInfo.length);
@@ -270,11 +279,11 @@ ppga.Class = {
         //alert("done");
     },
     makeRandomImages: function() {
-        var ensureTopHaveColor = $('#newHaveColor').attr('checked');
+        var topColorMode = $('#newHaveColor option:selected').val();
         this.resetImagesToLoad();
         for (var i = 1; i <= this.NUM_IMAGES; ++i) {
             var curId = 'img' + i;
-            var fn = this.makeRandomFn(0.0, ensureTopHaveColor);
+            var fn = this.makeRandomFn(0.0, topColorMode);
             this.curFns[curId] = fn;
             this.incImagesToLoad();
             this.setImage(fn, this.DEFAULT_IMAGE_SIZE, this.DEFAULT_IMAGE_SIZE, curId);

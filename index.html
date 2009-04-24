@@ -54,7 +54,7 @@ p.fixed {
         <p><input type="button" value="New generation" onclick="ppga.Class.makeRandomImages();"><input type="button" id="nextGenButton" value="Next generation" onclick="ppga.Class.nextGeneration();" disabled><img id="status" class="fixed" style="display: none;" src="loading.gif" alt="Loading..."></p>
         <p id="selectFnImg" class="fixed" style="display: none; width: 200px; height: 20px; background-color: rgb(208, 208, 208);">Click which image to load</p>
         <p>Select the pictures to breed together and click "Next generation".  Double-click on a picture to see a larger version.  You can load the function of an existing picture in the <a href="#details">"Details" section below</a>.</p>
-        <p><label for="newHaveColor">Ensure new top nodes have color:</label><input type="checkbox" name="newHaveColor" id="newHaveColor" checked="checked"></p>
+        <p><label for="newHaveColor">Top nodes:</label><select name="newHaveColor" id="newHaveColor"><option value="0">Generate normally</option><option value="1" selected="selected">Prefer with color</option><option value="2">Always have color</option></select></p>
     </form>
     <table>
         <tr><td><img id="img1" src="" alt=""></td><td><img id="img2" src="" alt=""></td><td><img id="img3" src="" alt=""></td><td><img id="img4" src="" alt=""></td><td><img id="img5" src="" alt=""></td></tr>
