@@ -1,8 +1,8 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<META http-equiv="Content-Style-Type" content="text/css">
+
+<meta charset="utf-8">
 <script type="text/javascript">
     var pngScript='writepngc.cgi';
 </script>
@@ -57,10 +57,10 @@ p.fixed {
         <p><label for="newHaveColor">Top nodes: </label><select name="newHaveColor" id="newHaveColor"><option value="0">Generate normally</option><option value="1" selected="selected">Prefer with color</option><option value="2">Always have color</option></select></p>
     </form>
     <table>
-        <tr><td><img id="img1" src="" alt=""></td><td><img id="img2" src="" alt=""></td><td><img id="img3" src="" alt=""></td><td><img id="img4" src="" alt=""></td><td><img id="img5" src="" alt=""></td></tr>
-        <tr><td><img id="img6" src="" alt=""></td><td><img id="img7" src="" alt=""></td><td><img id="img8" src="" alt=""></td><td><img id="img9" src="" alt=""></td><td><img id="img10" src="" alt=""></td></tr>
-        <tr><td><img id="img11" src="" alt=""></td><td><img id="img12" src="" alt=""></td><td><img id="img13" src="" alt=""></td><td><img id="img14" src="" alt=""></td><td><img id="img15" src="" alt=""></td></tr>
-        <tr><td><img id="img16" src="" alt=""></td><td><img id="img17" src="" alt=""></td><td><img id="img18" src="" alt=""></td><td><img id="img19" src="" alt=""></td><td><img id="img20" src="" alt=""></td></tr>
+        <tr><td><img id="img1" src="#" alt=""></td><td><img id="img2" src="#" alt=""></td><td><img id="img3" src="#" alt=""></td><td><img id="img4" src="#" alt=""></td><td><img id="img5" src="#" alt=""></td></tr>
+        <tr><td><img id="img6" src="#" alt=""></td><td><img id="img7" src="#" alt=""></td><td><img id="img8" src="#" alt=""></td><td><img id="img9" src="#" alt=""></td><td><img id="img10" src="#" alt=""></td></tr>
+        <tr><td><img id="img11" src="#" alt=""></td><td><img id="img12" src="#" alt=""></td><td><img id="img13" src="#" alt=""></td><td><img id="img14" src="#" alt=""></td><td><img id="img15" src="#" alt=""></td></tr>
+        <tr><td><img id="img16" src="#" alt=""></td><td><img id="img17" src="#" alt=""></td><td><img id="img18" src="#" alt=""></td><td><img id="img19" src="#" alt=""></td><td><img id="img20" src="#" alt=""></td></tr>
     </table>
     <p>Details:</p>
     <div id="details">
@@ -69,7 +69,7 @@ p.fixed {
             <p class="tight"><label for="detailsWidth">Width: </label><input type="text" size="5" name="detailsWidth" id="detailsWidth" value="500"></p>
             <p class="tight"><label for="detailsHeight">Height: </label><input type="text" size="5" name="detailsHeight" id="detailsHeight" value="500"></p>
             <p class="tight"><input type="button" id="detailsResize" value="Show image" onclick="ppga.Class.makeResizedDetail(form.detailsWidth.value, form.detailsHeight.value);"><input type="button" id="loadIntoGen" value="Load into current generation" onclick="ppga.Class.loadIntoGen(form.functionStr.value);"></p>
-            <p style="clear: both; float: left;"><img id="detailsImg" height="0" width="0" src="" alt=""></p>
+            <p style="clear: both; float: left;"><img id="detailsImg" height="0" width="0" src="#" alt=""></p>
         </form>
     </div>
     <p id="about" style="clear:both;"><b>About this project:</b> This project
@@ -115,32 +115,27 @@ JSON (using single quotes instead of double quotes, so they don't have to be URL
 [-1,1], and so must be followed by "-clip" or "-wrap" (describing how they
 return their values to [-1,1]).</p>
 <ul>
-<li><tt>num</tt> (takes a value argument)</li>
-<li><tt>x</tt></li>
-<li><tt>y</tt></li>
-<li><tt>atan*</tt></li>
-<li><tt>abs</tt></li>
-<li><tt>cos</tt></li>
-<li><tt>exp*</tt></li>
-<li><tt>log*</tt></li>
-<li><tt>neg</tt></li>
-<li><tt>rd</tt> (round down to an integer)</li>
-<li><tt>ru</tt> (round up to an integer)</li>
-<li><tt>sin</tt></li>
-<li><tt>add*</tt></li>
-<li><tt>div*</tt></li>
-<li><tt>mul*</tt></li>
-<li><tt>sub*</tt></li>
-<li><tt>bwperlin</tt> (takes one seed argument)</li>
-<li><tt>colorperlin</tt> (takes three seed arguments)</li>
-<li><tt>ccrgb</tt> (color conditional - arguments are red, green, blue channels)</li>
-<li><tt>cchsl</tt> (color conditional - arguments are HSL channels)</li>
+<li><code>num</code> (takes a value argument)</li>
+<li><code>x</code></li>
+<li><code>y</code></li>
+<li><code>atan*</code></li>
+<li><code>abs</code></li>
+<li><code>cos</code></li>
+<li><code>exp*</code></li>
+<li><code>log*</code></li>
+<li><code>neg</code></li>
+<li><code>rd</code> (round down to an integer)</li>
+<li><code>ru</code> (round up to an integer)</li>
+<li><code>sin</code></li>
+<li><code>add*</code></li>
+<li><code>div*</code></li>
+<li><code>mul*</code></li>
+<li><code>sub*</code></li>
+<li><code>bwperlin</code> (takes one seed argument)</li>
+<li><code>colorperlin</code> (takes three seed arguments)</li>
+<li><code>ccrgb</code> (color conditional - arguments are red, green, blue channels)</li>
+<li><code>cchsl</code> (color conditional - arguments are HSL channels)</li>
 </ul>
-  <p>
-    <a href="https://validator.w3.org/check?uri=referer"><img
-        src="https://www.w3.org/Icons/valid-html401"
-        alt="Valid HTML 4.01 Strict" height="31" width="88"></a>
-  </p>
 <!--#include virtual="/endOfBody.html"-->
 </body>
 </html>
