@@ -297,8 +297,12 @@ ppga.Class = {
         $(".img").width(120).height(120);
         $(".img").click(function() {ppga.Class.selectImage(this.id);});
         $(".img").dblclick(function() {ppga.Class.details(this.id);});
-        $(".img").load(function() {ppga.Class.load(this.id, true);});
-        $(".img").error(function() {ppga.Class.load(this.id, false);});
+        $(".img").on("load", function() {
+            ppga.Class.load(this.id, true);
+        });
+        $(".img").on("error", function() {
+            ppga.Class.load(this.id, false);
+        });
         $("#detailsWidth").keyup(this.listenForEnter);
         $("#detailsHeight").keyup(this.listenForEnter);
         $("#functionStr").keyup(this.listenForEnter);
@@ -484,8 +488,8 @@ ppga.Class = {
         this.detailFn = detailFn;
         this.resetImagesToLoad();
         this.incImagesToLoad();
-        img.load(function() {ppga.Class.load(this.id, true);});
-        img.error(function() {ppga.Class.load(this.id, false);});
+        img.on("load", function() {ppga.Class.load(this.id, true);});
+        img.on("error", function() {ppga.Class.load(this.id, false);});
         img.attr({width: w, height: h, src: this.makeCgiURL(w, h, this.detailFn)});
     },
     loadFnIntoGen: function(fn, id) {
@@ -519,8 +523,8 @@ ppga.Class = {
         $('#detailsResize').attr({value: "Resize image"});
         $('#functionStr').attr({value: this.friendlyString(fn)});
         this.incImagesToLoad();
-        $('#detailsImg').load(function() {ppga.Class.load(this.id, true);});
-        $('#detailsImg').error(function() {ppga.Class.load(this.id, false);});
+        $('#detailsImg').on("load", function() {ppga.Class.load(this.id, true);});
+        $('#detailsImg').on("error", function() {ppga.Class.load(this.id, false);});
         $('#detailsImg').attr({width: startWidth, height: startHeight, src: this.makeCgiURL(startWidth, startHeight, fn)});
         setTimeout(ppga.Class.scrollDetails, 500);
     },
@@ -549,6 +553,6 @@ ppga.Class = {
 
 (function() {
     $(document).ready(function() {ppga.Class.init();});
-    $(document).unload(function() {ppga.Class.uninit();});
+    $(window).on("unload", function() {ppga.Class.uninit();});
 })();
 //]]>
