@@ -1,11 +1,10 @@
 #include <iostream>
-//#include <stdio.h>
 #include <string>
 #include <map>
 #include <stdlib.h>
 #define PNG_SETJMP_NOT_SUPPORTED
 #include "png.h"
-#include "tinyjson.hpp"
+#include "rapidjson/document.h"
 #include <math.h>
 
 using namespace std;
@@ -16,6 +15,7 @@ typedef struct double_color {
     double green;
     double blue;
 } double_color;
+
 void writepng_version_info()
 {
     //fprintf(stderr, "   Compiled with libpng %s; using libpng %s.\n",
@@ -254,20 +254,20 @@ typedef enum colors_to_calculate_enum {
 } colors_to_calculate;
 template <colors_to_calculate C>
 struct RenderClass {
-    static void render_function(json::grammar<char>::variant funcJson, double_color* output, int width, int height, bool topLevel) {
+    static void render_function(const rapidjson::Value& funcJson, double_color* output, int width, int height, bool topLevel) {
         double_color* color_data_temp1 = NULL;
         double_color* color_data_temp2 = NULL;
         double_color* color_data_temp3 = NULL;
 
         // This should always be true
-        if (funcJson->type() == typeid(json::grammar<char>::object)) {
-            json::grammar<char>::object const &funcObj = boost::any_cast< json::grammar<char>::object >(*funcJson);
+        if (funcJson.IsObject()) {
+            const rapidjson::Value::ConstObject& funcObj = funcJson.GetObject();
             // Get the type of the function.
-            json::grammar<char>::object::const_iterator objectIt = funcObj.find("t");
-            if (objectIt == funcObj.end()) {
+            rapidjson::Value::ConstObject::MemberIterator objectIt = funcObj.FindMember("t");
+            if (objectIt == funcObj.MemberEnd()) {
                 throw "Function has no t member!";
             }
-            string t = boost::any_cast< string >(*(objectIt->second));
+            string t = objectIt->value.GetString();
             // FFV - we could do some crazy map here or something, but come on.
             // Or we could have a function for each type, once you evaluate its
             // arguments.
@@ -283,11 +283,11 @@ struct RenderClass {
                 }
                 double aux = 0.0;
                 if (t == "num") {
-                    objectIt = funcObj.find("val");
-                    if (objectIt == funcObj.end()) {
+                    objectIt = funcObj.FindMember("val");
+                    if (objectIt == funcObj.MemberEnd()) {
                         throw "Function num has no val member!";
                     }
-                    aux = boost::any_cast<double>(*(objectIt->second));
+                    aux = objectIt->value.GetDouble();
                 }
                 double deltaX = 2.0 / width;
                 double deltaY = 2.0 / height;
@@ -304,17 +304,17 @@ struct RenderClass {
                 }
             } else {
                 // Get the argument function.
-                objectIt = funcObj.find("ch");
-                if (objectIt == funcObj.end()) {
+                objectIt = funcObj.FindMember("ch");
+                if (objectIt == funcObj.MemberEnd()) {
                     throw "arg function has no ch member!";
                 }
-                json::grammar<char>::array const &argArray = boost::any_cast< json::grammar<char>::array >(*(objectIt->second));
+                const rapidjson::Value::ConstArray& argArray = objectIt->value.GetArray();
      
                 if (t == "atan" || t == "abs" || t == "cos" || t == "exp" || t == "log" || t == "neg" || t == "rd" || t == "ru" || t == "sin") {
                     // Do the one-arg ones.
                     // First, we have to recur.
                     color_data_temp1 = new double_color[width * height];
-                    json::grammar<char>::variant arg0 = argArray[0];
+                    const rapidjson::Value& arg0 = argArray[0];
                     RenderClass<C>::render_function(arg0, color_data_temp1, width, height, false);
                     OneArgRenderFn renderFn = NULL;
                     if (t == "atan") {
@@ -340,9 +340,9 @@ struct RenderClass {
                     // I thought this would make things faster, but now I
                     // think I'm just fooling myself.
                     WrappingFn wrappingFn = DoWrap<None>::doWrap;
-                    objectIt = funcObj.find("m");
-                    if (objectIt != funcObj.end()) {
-                        if (boost::any_cast<string>(*(objectIt->second)) == "c") {
+                    objectIt = funcObj.FindMember("m");
+                    if (objectIt != funcObj.MemberEnd()) {
+                        if (objectIt->value.GetString() == string("c")) {
                             wrappingFn = DoWrap<Clip>::doWrap;
                         } else {
                             wrappingFn = DoWrap<Wrap>::doWrap;
@@ -373,8 +373,8 @@ struct RenderClass {
                     // First, we have to recur.
                     color_data_temp1 = new double_color[width * height];
                     color_data_temp2 = new double_color[width * height];
-                    json::grammar<char>::variant arg0 = argArray[0];
-                    json::grammar<char>::variant arg1 = argArray[1];
+                    const rapidjson::Value& arg0 = argArray[0];
+                    const rapidjson::Value& arg1 = argArray[1];
                     RenderClass<C>::render_function(arg0, color_data_temp1, width, height, false);
                     RenderClass<C>::render_function(arg1, color_data_temp2, width, height, false);
                     TwoArgRenderFn renderFn = NULL;
@@ -391,44 +391,45 @@ struct RenderClass {
                         renderFn = render_function_sub;
                     } else if (t == "bwperlin") {
                         renderFn = render_function_bwperlin;
-                        objectIt = funcObj.find("seed");
-                        if (objectIt == funcObj.end()) {
+                        objectIt = funcObj.FindMember("seed");
+                        if (objectIt == funcObj.MemberEnd()) {
                             throw "Function bwperlin has no seed member!";
                         }
-                        int seed = boost::any_cast<int>(*(objectIt->second));
+                        int seed = objectIt->value.GetInt();
                         // This is a little inefficient, but meh.
                         bwperlindata1.init(seed);
                         bwperlindata2.init(seed);
                         bwperlindata3.init(seed);
                     } else if (t == "colorperlin") {
                         renderFn = render_function_bwperlin;
-                        objectIt = funcObj.find("seed1");
-                        if (objectIt == funcObj.end()) {
+                        objectIt = funcObj.FindMember("seed1");
+                        if (objectIt == funcObj.MemberEnd()) {
                             throw "Function bwperlin has no seed1 member!";
                         }
-                        int seed1 = boost::any_cast<int>(*(objectIt->second));
+                        int seed1 = objectIt->value.GetInt();
                         bwperlindata1.init(seed1);
-                        objectIt = funcObj.find("seed2");
-                        if (objectIt == funcObj.end()) {
+                        objectIt = funcObj.FindMember("seed2");
+                        if (objectIt == funcObj.MemberEnd()) {
                             throw "Function bwperlin has no seed2 member!";
                         }
-                        int seed2 = boost::any_cast<int>(*(objectIt->second));
+                        int seed2 = objectIt->value.GetInt();
                         bwperlindata2.init(seed2);
-                        objectIt = funcObj.find("seed3");
-                        if (objectIt == funcObj.end()) {
+                        objectIt = funcObj.FindMember("seed3");
+                        if (objectIt == funcObj.MemberEnd()) {
                             throw "Function bwperlin has no seed3 member!";
                         }
-                        int seed3 = boost::any_cast<int>(*(objectIt->second));
+                        int seed3 = objectIt->value.GetInt();
                         bwperlindata3.init(seed3);
                     }
 
                     // Look at the mapping strategy, if present.
                     // I thought this would make things faster, but now I
                     // think I'm just fooling myself.
+                    // TODO - move to helper method
                     WrappingFn wrappingFn = DoWrap<None>::doWrap;
-                    objectIt = funcObj.find("m");
-                    if (objectIt != funcObj.end()) {
-                        if (boost::any_cast<string>(*(objectIt->second)) == "c") {
+                    objectIt = funcObj.FindMember("m");
+                    if (objectIt != funcObj.MemberEnd()) {
+                        if (objectIt->value.GetString() == string("c")) {
                             wrappingFn = DoWrap<Clip>::doWrap;
                         } else {
                             wrappingFn = DoWrap<Wrap>::doWrap;
@@ -463,10 +464,10 @@ struct RenderClass {
                     color_data_temp1 = new double_color[width * height];
                     color_data_temp2 = new double_color[width * height];
                     color_data_temp3 = new double_color[width * height];
-                    json::grammar<char>::variant arg0 = argArray[0];
-                    json::grammar<char>::variant arg1 = argArray[1];
-                    json::grammar<char>::variant arg2 = argArray[2];
-
+                    const rapidjson::Value& arg0 = argArray[0];
+                    const rapidjson::Value& arg1 = argArray[1];
+                    const rapidjson::Value& arg2 = argArray[2];
+                    //
                     // There are only two three-arg functions, and they're a bit
                     // complicated, so roll our own.
                     if (t == "ccrgb") {
@@ -644,6 +645,14 @@ map<string, string> parse_query_string(string input) {
     return queryMap;
 }
 
+void replace_single_quotes_with_double_quotes(string& str) {
+    for (size_t i = 0; i < str.size(); ++i) {
+        if (str[i] == '\'') {
+            str[i] = '"';
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     //writepng_version_info();
     int errorCode = 0;
@@ -655,7 +664,9 @@ int main(int argc, char** argv) {
         if (!envString) {
             throw "No arguments passed!";
         }
-        map<string, string> params = parse_query_string(string(envString));
+        string jsonString = string(envString);
+        replace_single_quotes_with_double_quotes(jsonString);
+        map<string, string> params = parse_query_string(jsonString);
         map<string, string>::iterator it = params.find("f");
         if (it == params.end()) {
             throw "No f argument passed!";
@@ -675,8 +686,9 @@ int main(int argc, char** argv) {
         pngOutput.reserve(width*height*24 + 50);
 
         // Parse the JSON.
-        json::grammar<char>::variant funcJson = json::parse(funcString.begin(), funcString.end());
-        if (funcJson->type() != typeid(json::grammar<char>::object)) {
+        rapidjson::Document funcJson;
+        funcJson.Parse(funcString.c_str());
+        if (funcJson.HasParseError() || !funcJson.IsObject()) {
             // Bad format!
             throw "Bad JSON format!";
         }

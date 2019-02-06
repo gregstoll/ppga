@@ -12,5 +12,11 @@ cgiTester: cgiTester.hs MakePng.hs
 PngTest: Png.hs PngTest.hs
 	ghc -O -fglasgow-exts -fth --make -o PngTest PngTest.hs
 
-writepng: writepng.cpp tinyjson.hpp
-	g++ -O -Wall -o writepng -lpng writepng.cpp
+writepng.o: writepng.cpp
+	g++ -c -O2 -Wall -o writepng.o writepng.cpp
+
+writepng: writepng.o
+	g++ -O2 -Wall -lpng16 -lm -o writepng writepng.o
+
+clean:
+	rm -f writepng.o writepng
