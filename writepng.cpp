@@ -665,13 +665,13 @@ int main(int argc, char** argv) {
             throw "No arguments passed!";
         }
         string jsonString = string(envString);
-        replace_single_quotes_with_double_quotes(jsonString);
         map<string, string> params = parse_query_string(jsonString);
         map<string, string>::iterator it = params.find("f");
         if (it == params.end()) {
             throw "No f argument passed!";
         }
         string funcString = it->second;
+        replace_single_quotes_with_double_quotes(funcString);
         it = params.find("w");
         if (it == params.end()) {
             throw "No w argument passed!";
@@ -690,6 +690,7 @@ int main(int argc, char** argv) {
         funcJson.Parse(funcString.c_str());
         if (funcJson.HasParseError() || !funcJson.IsObject()) {
             // Bad format!
+            //std::cout << "string is " << funcString;
             throw "Bad JSON format!";
         }
         //
