@@ -514,8 +514,8 @@ ppga.Class = {
         }
     },
     details: function(id) {
-        var startWidth = parseInt($('#detailsWidth').attr("value"));
-        var startHeight = parseInt($('#detailsHeight').attr("value"));
+        var startWidth = parseInt($('#detailsWidth')[0].value);
+        var startHeight = parseInt($('#detailsHeight')[0].value);
         this.resetImagesToLoad();
         var detailsDiv = $('#details');
         var fn = this.curFns[id];
