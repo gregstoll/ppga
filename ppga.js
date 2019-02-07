@@ -484,7 +484,7 @@ ppga.Class = {
     },
     makeResizedDetail: function(w, h) {
         var img = $('#detailsImg');
-        var detailFn = this.parseFriendlyString($('#functionStr').attr('value'))['fn'];
+        var detailFn = this.parseFriendlyString($('#functionStr')[0].value)['fn'];
         this.detailFn = detailFn;
         this.resetImagesToLoad();
         this.incImagesToLoad();
@@ -521,7 +521,7 @@ ppga.Class = {
         var fn = this.curFns[id];
         this.detailFn = fn;
         $('#detailsResize').attr({value: "Resize image"});
-        $('#functionStr').attr({value: this.friendlyString(fn)});
+        $('#functionStr')[0].value = this.friendlyString(fn);
         this.incImagesToLoad();
         $('#detailsImg').on("load", function() {ppga.Class.load(this.id, true);});
         $('#detailsImg').on("error", function() {ppga.Class.load(this.id, false);});
