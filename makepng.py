@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import pngcanvas
 import cgi
@@ -173,7 +173,7 @@ def xyAdapter(fnObj, mapStrat, simEval, xs, ys):
         xs = [0.0]
     if (not fnObj['dep']['y']):
         ys = [0.0]
-    childArgs = zip(*childResults)
+    childArgs = list(zip(*childResults))
     xys = [(x, y) for y in ys for x in xs]
     if ('c' in fnObj):
         return [mapStrat(simEval(c, x, y)) for ((x, y), c) in zip(xys, childArgs)]
@@ -201,5 +201,5 @@ else:
     c = pngcanvas.PNGCanvas(width, height)
     c.apply(makeTopEvaluator(func))
 
-    print "Content-type: image/png\n"
-    print c.dump()
+    print("Content-type: image/png\n")
+    print(c.dump())

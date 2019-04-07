@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """Simple PNG Canvas for Python"""
 __version__ = "0.7"

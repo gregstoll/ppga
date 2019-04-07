@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import string
 
 info = []
@@ -25,10 +25,10 @@ def main(inFile):
     f.close()
     # Javascript
     for entry in info:
-        print "{'type': '%s', 'children': %d%s}," % (entry['name'], entry['children'], (entry['needsMap'] and ", 'needsMap': true" or ""))
+        print("{'type': '%s', 'children': %d%s}," % (entry['name'], entry['children'], (entry['needsMap'] and ", 'needsMap': true" or "")))
     # Python
     for entry in info:
-        print "'%s': {'children': %d%s}," % (entry['name'], entry['children'], (entry['needsMap'] and ", 'needsMap' : True" or ""))
+        print("'%s': {'children': %d%s}," % (entry['name'], entry['children'], (entry['needsMap'] and ", 'needsMap' : True" or "")))
 
 if (__name__ == '__main__'):
     main('newfuncs')

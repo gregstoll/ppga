@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os, sys, re
 
@@ -28,22 +28,22 @@ t = open('%s/timings' % dirname, 'w')
 for time in times:
     t.write('%f\n' % time)
 t.close()
-print times
+print(times)
 # Now compare against groundtruth png's
 numFiles = fileNum
 for i in range(0, numFiles):
     if (os.system('/usr/bin/cmp groundtruth/png%d.png %s/png%d.png' %(i, dirname, i))):
-        print "Mismatch on function number %d!" % i
+        print("Mismatch on function number %d!" % i)
         sys.exit(1)
-print "Files compare correctly."
+print("Files compare correctly.")
 # Compare timings
 i = 0
 oldtimings = open('groundtruth/timings', 'r')
 timeTotals = [0.0, 0.0]
 for oldT in oldtimings.readlines():
     oldtime = float(oldT[:-1])
-    print "oldtime is %f, newtime is %f, factor is %f" % (oldtime, times[i], times[i]/oldtime)
+    print("oldtime is %f, newtime is %f, factor is %f" % (oldtime, times[i], times[i]/oldtime))
     timeTotals[0] += oldtime
     timeTotals[1] += times[i]
     i = i + 1
-print "Total timings: old %f, new %f, factor %f" % (timeTotals[0], timeTotals[1], timeTotals[1]/timeTotals[0])
+print("Total timings: old %f, new %f, factor %f" % (timeTotals[0], timeTotals[1], timeTotals[1]/timeTotals[0]))
