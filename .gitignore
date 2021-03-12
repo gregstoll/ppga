@@ -1,3 +1,6 @@
 writepng
+
+# Compiled Object files
 *.o
+*.obj
 *.pyc
