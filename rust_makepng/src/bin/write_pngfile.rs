@@ -1,12 +1,12 @@
 use std::{fs::File, io::BufWriter, path::Path};
 
-use rust_makepng::make_png;
+use rust_makepng::make_png_data;
 
 
 fn main() {
     let width = 100;
     let height = 100;
-    let data = make_png("", width, height);
+    let data = make_png_data("", width, height);
 
     let path = Path::new(r"C:\Users\greg\Documents\ppga\rust_makepng\test.png");
     let file = File::create(path).unwrap();

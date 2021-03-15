@@ -1,19 +1,78 @@
-// Returns data in a series of [r, g, b]
-pub fn make_png(s: &str, width: u32, height: u32) -> Vec<u8> {
+#[derive(Debug, PartialEq, Copy, Clone)]
+struct ColorData {
+    red: f64,
+    blue: f64,
+    green: f64
+}
 
-    // TODO rendering will happen in double
+trait RenderZeroArg {
+    fn render(&self, x: f64, y: f64, aux: f64) -> f64;
+}
+
+struct RenderFnX;
+impl RenderZeroArg for RenderFnX {
+    fn render(&self, x: f64, _y: f64, _aux: f64) -> f64 {
+        x
+    }
+}
+struct RenderFnY;
+impl RenderZeroArg for RenderFnY {
+    fn render(&self, _x: f64, y: f64, _aux: f64) -> f64 {
+        y
+    }
+}
+struct RenderFnNum;
+impl RenderZeroArg for RenderFnNum {
+    fn render(&self, _x: f64, _y: f64, aux: f64) -> f64 {
+        aux
+    }
+}
+
+fn double_to_pixel_value(d: f64) -> u8 {
+    ((d + 1.0) * (255.0/2.0)) as u8
+}
+
+// Returns data in a series of [r, g, b]
+pub fn make_png_data(s: &str, width: u32, height: u32) -> Vec<u8> {
     let mut pixel_data = Vec::new();
-    pixel_data.reserve_exact((width as usize) * (height as usize) * 3);
-    for i in 0..height {
-        for j in 0..width {
-            pixel_data.push(0);
-            pixel_data.push(127);
-            pixel_data.push(255);
-        }
+    for _i in 0..height*width {
+        pixel_data.push(ColorData { red: 0.0, green: 0.0, blue: 0.0});
+    }
+    make_png_data_double(s, width, height, &mut pixel_data);
+
+
+    let mut final_pixel_data = Vec::new();
+    final_pixel_data.reserve_exact((width as usize) * (height as usize) * 3);
+    for data in pixel_data {
+        final_pixel_data.push(double_to_pixel_value(data.red));
+        final_pixel_data.push(double_to_pixel_value(data.green));
+        final_pixel_data.push(double_to_pixel_value(data.blue));
     }
 
-    return pixel_data;
+    return final_pixel_data;
 }
+
+fn make_png_data_double(s: &str, width: u32, height: u32, data: &mut Vec<ColorData>) {
+    // TODO - parse s
+    let f: Box<dyn RenderZeroArg> = Box::new(RenderFnX);
+    let delta_x = 2.0 / (width as f64);
+    let delta_y = 2.0 / (height as f64);
+    let mut y = -1.0;
+    let mut data_index = 0;
+    for _ in 0..height {
+        let mut x = -1.0;
+        for _ in 0..width {
+            let val = f.render(x, y, 0.0);
+            data[data_index].red = val;
+            data[data_index].green = val;
+            data[data_index].blue = val;
+            data_index += 1;
+            x += delta_x;
+        }
+        y += delta_y;
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

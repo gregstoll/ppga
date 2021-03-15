@@ -1,5 +1,4 @@
 writepng
-rust_makepng/target/*
 
 # Compiled Object files
 *.o
