@@ -1,4 +1,5 @@
 use serde_json::Value;
+use anyhow::{anyhow, Context, Result};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 struct ColorData {
@@ -42,13 +43,12 @@ fn double_to_pixel_value(d: f64) -> u8 {
 }
 
 // Returns data in a series of [r, g, b]
-pub fn make_png_data(s: &str, width: u32, height: u32) -> serde_json::Result<Vec<u8>> {
+pub fn make_png_data(s: &str, width: u32, height: u32) -> Result<Vec<u8>> {
     let mut pixel_data = Vec::new();
     for _i in 0..height*width {
         pixel_data.push(ColorData { red: 0.0, green: 0.0, blue: 0.0});
     }
     make_png_data_double(s, width, height, &mut pixel_data)?;
-
 
     let mut final_pixel_data = Vec::new();
     final_pixel_data.reserve_exact((width as usize) * (height as usize) * 3);
@@ -61,27 +61,43 @@ pub fn make_png_data(s: &str, width: u32, height: u32) -> serde_json::Result<Vec
     return Ok(final_pixel_data);
 }
 
-fn make_png_data_double(s: &str, width: u32, height: u32, data: &mut Vec<ColorData>) -> serde_json::Result<()> {
+fn make_png_data_double(s: &str, width: u32, height: u32, data: &mut Vec<ColorData>) -> Result<()> {
     // TODO - parse s
-    let j: Value = serde_json::from_str(s)?;
-    let f: Box<dyn RenderZeroArg> = Box::new(RenderFnX);
+    let j: Value = serde_json::from_str(s).context("string isn't proper JSON")?;
+    let j = j.as_object().ok_or(anyhow!("json should be an object"))?;
+    let function = j.get("t").ok_or(anyhow!("no 't' key"))?.as_str().ok_or(anyhow!("'t' value isn't string"))?;
     let delta_x = 2.0 / (width as f64);
     let delta_y = 2.0 / (height as f64);
-    let mut y = -1.0;
-    let mut data_index = 0;
-    for _ in 0..height {
-        let mut x = -1.0;
-        for _ in 0..width {
-            let val = f.render(x, y);
-            data[data_index].red = val;
-            data[data_index].green = val;
-            data[data_index].blue = val;
-            data_index += 1;
-            x += delta_x;
+    let f_zero_arg_opt : Option<Box<dyn RenderZeroArg>> = 
+        match function {
+            "x" => Some(Box::new(RenderFnX)),
+            "y" => Some(Box::new(RenderFnY)),
+            "num" => {
+                let val = j.get("val").ok_or(anyhow!("'num' type has no val"))?.as_f64().ok_or(anyhow!("'num' type's val is not an f64"))?;
+                Some(Box::new(RenderFnNum { num: val }))
+            }
+            _ => None,
+        };
+    if let Some(f_zero_arg) = f_zero_arg_opt {
+        let mut y = -1.0;
+        let mut data_index = 0;
+        for _ in 0..height {
+            let mut x = -1.0;
+            for _ in 0..width {
+                let val = f_zero_arg.render(x, y);
+                data[data_index].red = val;
+                data[data_index].green = val;
+                data[data_index].blue = val;
+                data_index += 1;
+                x += delta_x;
+            }
+            y += delta_y;
         }
-        y += delta_y;
+        return Ok(());
     }
-    Ok(())
+
+    //TODO
+    return Ok(());
 }
 
 
