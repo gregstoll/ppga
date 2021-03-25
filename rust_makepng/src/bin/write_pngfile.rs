@@ -6,7 +6,7 @@ use rust_makepng::make_png_data;
 fn main() {
     let width = 100;
     let height = 100;
-    let data = make_png_data("{}", width, height).unwrap();
+    let data = make_png_data(r#"{"t": "num", "val": -0.6}"#, width, height).unwrap();
 
     let path = Path::new(r"C:\Users\greg\Documents\ppga\rust_makepng\test.png");
     let file = File::create(path).unwrap();
